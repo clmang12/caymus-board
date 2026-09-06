@@ -8,6 +8,7 @@ build/
 .DS_Store
 *.log
 .vercel
+supabase/.temp/
 .idea/
 .vscode/*
 !.vscode/extensions.json
