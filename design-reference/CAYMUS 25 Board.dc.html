@@ -1,0 +1,2158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;height:100%;font-family:'Figtree',sans-serif;background:#f3f4f7;}
+*{box-sizing:border-box;}
+a{color:#0073ea;text-decoration:none;}
+a:hover{color:#0060b9;text-decoration:underline;}
+input,button{font-family:'Figtree',sans-serif;}
+input[type="date"]::-webkit-calendar-picker-indicator{opacity:.35;cursor:pointer;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:#c5c7d0;border-radius:6px;border:2px solid #fff;}
+::-webkit-scrollbar-track{background:transparent;}
+[data-ph]:empty::before{content:attr(data-ph);color:var(--tx3);pointer-events:none;}
+[contenteditable] ul,[contenteditable] ol{margin:4px 0;padding-left:22px;}
+.msg-body ul,.msg-body ol{margin:4px 0;padding-left:22px;}
+.msg-body code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--s3);border:1px solid var(--bd);border-radius:4px;padding:0 4px;}
+.cellplus{opacity:0;transition:opacity .12s;pointer-events:none;}
+.cellwrap:hover .cellplus{opacity:1;pointer-events:auto;}
+.cellwrap:hover .cellmark{opacity:0;}
+.board-root{--s1:#fff;--s2:#f7f8fc;--s3:#f5f6f8;--bd:#e6e9f2;--bd2:#eef0f6;--bd3:#d0d4e4;--tx:#323338;--tx2:#676879;--tx3:#9699a6;--empty:#c4c4c4;--hov:#f8f9fd;--sum:#fbfcfe;}
+.board-root.dark{--s1:#20222b;--s2:#191b23;--s3:#2b2e38;--bd:#31343f;--bd2:#282b34;--bd3:#3c414d;--tx:#e7e8ee;--tx2:#a4a7b4;--tx3:#767a87;--empty:#2c2f39;--hov:#282b34;--sum:#1b1d25;background:#20222b;color:#e7e8ee;}
+.board-root.dark ::-webkit-scrollbar-thumb{background:#3c414d;border-color:#20222b;}
+.board-root.dark input::placeholder,.board-root.dark textarea::placeholder{color:#6b6f7d;}
+.board-root.dark input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(0.85);}
+body:has(.board-root.dark){background:#14151b;}
+</style>
+<script src="caymus-data.js"></script>
+<template id="__bundler_thumbnail" data-bg-color="#0a5e3e">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0a5e3e"/>
+    <rect x="120" y="140" width="960" height="72" rx="10" fill="#ffffff" opacity="0.95"/>
+    <rect x="120" y="248" width="960" height="60" rx="8" fill="#ffffff" opacity="0.28"/>
+    <rect x="120" y="328" width="960" height="60" rx="8" fill="#ffffff" opacity="0.28"/>
+    <rect x="120" y="408" width="960" height="60" rx="8" fill="#ffffff" opacity="0.28"/>
+    <rect x="120" y="248" width="14" height="220" rx="7" fill="#00c875"/>
+    <circle cx="180" cy="278" r="14" fill="#00c875"/>
+    <circle cx="180" cy="358" r="14" fill="#fdab3d"/>
+    <circle cx="180" cy="438" r="14" fill="#e2445c"/>
+  </svg>
+</template>
+</helmet>
+<div class="board-root {{ themeClass }}" style="display:flex;height:100vh;overflow:hidden;color:var(--tx);background:var(--s1)" data-screen-label="Board">
+  <aside style="width:248px;flex:0 0 248px;background:var(--s2);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:14px 0">
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 16px 14px 16px;border-bottom:1px solid var(--bd)">
+      <div style="width:30px;height:30px;border-radius:8px;background:#0073ea;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px">C</div>
+      <div>
+        <div style="font-weight:700;font-size:14px;line-height:1.1">Caymus Mortgage</div>
+        <div style="font-size:11.5px;color:var(--tx2)">Main workspace</div>
+      </div>
+    </div>
+    <div style="padding:14px 16px 6px 16px;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--tx2)">BOARDS</div>
+    <div style="display:flex;flex-direction:column;gap:2px;padding:0 8px">
+      <sc-for list="{{ boards }}" as="b" hint-placeholder-count="4">
+        <div draggable="{{ b.draggable }}" onDragStart="{{ b.onDragStart }}" onDragOver="{{ b.onDragOver }}" onDrop="{{ b.onDrop }}" onDragEnd="{{ b.onDragEnd }}" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;background:{{ b.bg }};color:{{ b.color }};font-weight:{{ b.weight }};font-size:13.5px;cursor:pointer;opacity:{{ b.dragOpacity }};box-shadow:{{ b.dropShadow }}" style-hover="background:{{ b.hoverBg }}" onClick="{{ b.onSelect }}">
+          <span style="width:14px;height:14px;border:1.6px solid {{ b.dot }};border-radius:3px;display:inline-block;flex:0 0 auto"></span>
+          <sc-if value="{{ b.editing }}" hint-placeholder-val="{{ false }}">
+            <input autofocus="" defaultValue="{{ b.name }}" onBlur="{{ b.onRename }}" onKeyDown="{{ onEnterBlur }}" onClick="{{ stopProp }}" style="flex:1;min-width:0;border:1px solid #0073ea;border-radius:4px;background:var(--s1);font-size:13px;color:var(--tx);padding:2px 5px;outline:none">
+          </sc-if>
+          <sc-if value="{{ b.notEditing }}" hint-placeholder-val="{{ true }}">
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ b.name }}</span>
+          </sc-if>
+          <button onClick="{{ b.onMenu }}" title="Board options" style="background:none;border:none;cursor:pointer;color:{{ b.color }};font-size:15px;padding:0 2px;border-radius:4px;letter-spacing:1px;flex:0 0 auto;line-height:1" style-hover="background:var(--s1)fff88">⋯</button>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top:auto;padding:12px 16px;font-size:11.5px;color:var(--tx3);line-height:1.5">Local demo — data is saved in this browser. Other boards not imported.</div>
+  </aside>
+  <main style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <header style="padding:16px 24px 0 24px;flex:0 0 auto">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="min-width:0">
+          <div style="font-size:22px;font-weight:700;line-height:1.2">{{ boardName }}</div>
+          <div style="font-size:13px;color:var(--tx2);margin-top:2px">{{ boardDesc }}</div>
+        </div>
+        <button onClick="{{ onReset }}" style="margin-left:auto;background:none;border:1px solid var(--bd3);border-radius:6px;padding:6px 12px;font-size:12.5px;color:var(--tx2);cursor:pointer" style-hover="background:var(--s3);color:var(--tx)">Reset demo data</button>
+      </div>
+      <div style="display:flex;gap:18px;margin-top:12px;border-bottom:1px solid var(--bd)">
+        <div style="padding:7px 2px;border-bottom:2px solid #0073ea;color:#0073ea;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="3" rx="1" fill="#0073ea"></rect><rect x="1" y="6.5" width="14" height="3" rx="1" fill="#0073ea" opacity=".55"></rect><rect x="1" y="11" width="14" height="3" rx="1" fill="#0073ea" opacity=".3"></rect></svg>
+          Main table
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 0;flex-wrap:wrap">
+        <button onClick="{{ onNewDeal }}" style="background:#0073ea;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px" style-hover="background:#0060b9">
+          New deal
+          <svg width="11" height="11" viewBox="0 0 12 12"><path d="M6 1v10M1 6h10" stroke="#fff" stroke-width="1.8" stroke-linecap="round"></path></svg>
+        </button>
+        <div style="display:flex;align-items:center;gap:6px;border:1px solid var(--bd3);border-radius:6px;padding:6px 10px;width:240px;min-width:140px;flex-shrink:1" style-focus="border-color:#0073ea">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="var(--tx2)" stroke-width="1.6"></circle><path d="M11 11l3.4 3.4" stroke="var(--tx2)" stroke-width="1.6" stroke-linecap="round"></path></svg>
+          <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="Search deals" style="border:none;outline:none;font-size:13px;flex:1;background:transparent;color:var(--tx)">
+        </div>
+        <button onClick="{{ onCollapseAll }}" style="background:none;border:1px solid var(--bd3);border-radius:6px;padding:7px 12px;font-size:12.5px;color:var(--tx2);cursor:pointer" style-hover="background:var(--s3)">{{ collapseLabel }}</button>
+        <button onClick="{{ onUndo }}" title="Undo last change" disabled="{{ undoDisabled }}" style="background:none;border:1px solid var(--bd3);border-radius:6px;padding:7px 12px;font-size:12.5px;color:{{ undoColor }};cursor:{{ undoCursor }};display:flex;align-items:center;gap:6px" style-hover="background:var(--s3)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 3.5L2.5 7 6 10.5M3 7h7a3.5 3.5 0 0 1 0 7H7" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          Undo
+        </button>
+        <div style="position:relative;margin-left:auto;flex:0 0 auto">
+          <button onClick="{{ onFilterOpen }}" title="Filter by agent or lender" style="background:none;border:1px solid {{ filterBorder }};border-radius:6px;padding:7px 12px;font-size:12.5px;color:{{ filterColor }};cursor:pointer;display:flex;align-items:center;gap:6px;max-width:220px" style-hover="background:var(--s3)">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 3h12M4.5 8h7M7 13h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ filterLabel }}</span>
+          </button>
+          <sc-if value="{{ filterOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:0;top:100%;margin-top:6px;z-index:55;background:var(--s1);border:1px solid var(--bd3);border-radius:10px;box-shadow:0 12px 32px rgba(30,40,80,.2);width:440px;display:flex;padding:10px;gap:10px">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--tx3);padding:4px 8px">AGENT</div>
+                <sc-for list="{{ filterAgents }}" as="fa" hint-placeholder-count="4">
+                  <div onClick="{{ fa.onPick }}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--tx)" style-hover="background:var(--s3)">
+                    <span style="width:9px;height:9px;flex:0 0 auto;border-radius:50%;background:{{ fa.dot }}"></span>
+                    <span style="flex:1">{{ fa.name }}</span>
+                    <span style="color:#0073ea;font-weight:700">{{ fa.check }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="width:1px;background:var(--bd)"></div>
+              <div style="flex:1.2;min-width:0;max-height:300px;overflow:auto">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--tx3);padding:4px 8px">LENDER</div>
+                <sc-for list="{{ filterLenders }}" as="fl" hint-placeholder-count="6">
+                  <div onClick="{{ fl.onPick }}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--tx)" style-hover="background:var(--s3)">
+                    <span style="flex:1">{{ fl.name }}</span>
+                    <span style="color:#0073ea;font-weight:700">{{ fl.check }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="position:absolute;right:10px;top:10px;display:flex;gap:6px">
+                <button onClick="{{ onFilterClear }}" style="background:none;border:none;cursor:pointer;color:#0073ea;font-size:12px;padding:2px 6px" style-hover="text-decoration:underline">Clear</button>
+                <button onClick="{{ onFilterClose }}" style="background:none;border:none;cursor:pointer;color:var(--tx3);font-size:13px;padding:2px 4px" style-hover="color:var(--tx)">✕</button>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+        <button onClick="{{ onAIOpen }}" title="AI assistant" style="background:linear-gradient(135deg,#7a3ff2,#0073ea);color:#fff;border:none;border-radius:6px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px" style-hover="filter:brightness(1.08)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1.5l1.5 4L14 7l-4.5 1.5L8 13l-1.5-4.5L2 7l4.5-1.5L8 1.5z" fill="#fff"></path><path d="M13 11l.7 1.8L15.5 13.5l-1.8.7L13 16l-.7-1.8L10.5 13.5l1.8-.7L13 11z" fill="#fff" opacity=".85"></path></svg>
+          AI
+        </button>
+        <button onClick="{{ onThemeToggle }}" title="{{ themeTitle }}" style="background:none;border:1px solid var(--bd3);border-radius:6px;width:34px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--tx2);cursor:pointer" style-hover="background:var(--s3)">
+          <sc-if value="{{ dark }}" hint-placeholder-val="{{ false }}">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3.2" stroke="currentColor" stroke-width="1.3"></circle><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M13 3l-1.4 1.4M4.4 11.6L3 13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path></svg>
+          </sc-if>
+          <sc-if value="{{ light }}" hint-placeholder-val="{{ true }}">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M13.5 9.3A5.5 5.5 0 0 1 6.7 2.5a5.5 5.5 0 1 0 6.8 6.8z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"></path></svg>
+          </sc-if>
+        </button>
+        <button onClick="{{ onAutosOpen }}" title="Board automations" style="background:none;border:1px solid var(--bd3);border-radius:6px;padding:7px 12px;font-size:12.5px;color:var(--tx2);cursor:pointer;display:flex;align-items:center;gap:6px" style-hover="background:var(--s3)">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8.8 1.5L3 9h4l-.8 5.5L12 7H8z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"></path></svg>
+          Automations
+        </button>
+        <div style="position:relative;flex:0 0 auto">
+          <button onClick="{{ onNotifOpen }}" title="Notifications" style="background:none;border:1px solid var(--bd3);border-radius:6px;width:34px;height:32px;display:flex;align-items:center;justify-content:center;color:{{ notifBellColor }};cursor:pointer" style-hover="background:var(--s3)">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 2a4 4 0 0 0-4 4v2.5L2.8 11a.6.6 0 0 0 .53.9h9.34a.6.6 0 0 0 .53-.9L12 8.5V6a4 4 0 0 0-4-4zM6.5 13.5a1.5 1.5 0 0 0 3 0" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </button>
+          <sc-if value="{{ hasNotifs }}" hint-placeholder-val="{{ false }}">
+            <span style="position:absolute;top:-6px;right:-6px;background:#df2f4a;color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 6px;pointer-events:none">{{ notifCount }}</span>
+          </sc-if>
+          <sc-if value="{{ notifOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;right:0;top:100%;margin-top:6px;z-index:55;background:var(--s1);border:1px solid var(--bd3);border-radius:10px;box-shadow:0 12px 32px rgba(30,40,80,.2);width:380px;max-height:420px;overflow:auto;padding:8px">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--tx2)">NOTIFICATIONS<span style="display:flex;align-items:center;gap:6px"><sc-if value="{{ hasNotifs }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onClearAllNotifs }}" style="background:none;border:none;cursor:pointer;color:var(--tx3);font-size:11px;font-weight:600;letter-spacing:.02em;padding:2px 4px" style-hover="color:#df2f4a">Clear all</button></sc-if><button onClick="{{ onNotifClose }}" style="background:none;border:none;cursor:pointer;color:var(--tx3);font-size:13px;padding:2px 4px" style-hover="color:var(--tx)">✕</button></span></div>
+              <sc-if value="{{ hasNotifs }}" hint-placeholder-val="{{ false }}">
+                <sc-for list="{{ notifs }}" as="n" hint-placeholder-count="0">
+                  <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 10px;border-radius:8px" style-hover="background:var(--s3)">
+                    <span style="width:8px;height:8px;flex:0 0 auto;border-radius:50%;background:#0073ea;margin-top:5px"></span>
+                    <span style="min-width:0;flex:1;font-size:13px;line-height:1.45;color:var(--tx);word-break:break-word">{{ n.msg }}<span style="display:block;font-size:11.5px;color:var(--tx3);margin-top:2px">{{ n.time }}</span></span>
+                    <button onClick="{{ n.onDismiss }}" title="Dismiss" style="background:none;border:none;cursor:pointer;color:#c5c7d0;font-size:11.5px;padding:2px 4px;flex:0 0 auto" style-hover="color:#df2f4a">✕</button>
+                  </div>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{ noNotifs }}" hint-placeholder-val="{{ false }}">
+                <div style="text-align:center;color:var(--tx3);font-size:13px;padding:26px 10px">You're all caught up 🎉</div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+        <button onClick="{{ onBoardChat }}" title="Board conversation" style="background:none;border:1px solid var(--bd3);border-radius:6px;padding:7px 12px;font-size:12.5px;color:{{ boardChatColor }};cursor:pointer;display:flex;align-items:center;gap:6px" style-hover="background:var(--s3)">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 3.5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6l-3 2.5V10.5H3a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"></path></svg>
+          Conversation<sc-if value="{{ boardHasChat }}" hint-placeholder-val="{{ false }}"><span data-conv-badge style="font-size:11px;font-weight:700;background:#0073ea;color:#fff;border-radius:10px;padding:1px 7px">{{ boardChatCount }}</span></sc-if>
+        </button>
+        <div style="position:relative;flex:0 0 auto">
+          <button onClick="{{ onTrashOpen }}" title="Trash" style="background:none;border:1px solid var(--bd3);border-radius:6px;width:34px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--tx2);cursor:pointer" style-hover="background:var(--s3)">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2.5 4h11M5.5 4V2.8a.8.8 0 0 1 .8-.8h3.4a.8.8 0 0 1 .8.8V4m1.8 0l-.7 9a1 1 0 0 1-1 .9H5.4a1 1 0 0 1-1-.9l-.7-9M6.5 7v4M9.5 7v4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          </button>
+          <sc-if value="{{ hasTrash }}" hint-placeholder-val="{{ false }}">
+            <span style="position:absolute;top:-6px;right:-6px;background:var(--tx2);color:#fff;font-size:10px;font-weight:700;border-radius:9px;padding:1px 6px;pointer-events:none">{{ trashCount }}</span>
+          </sc-if>
+        </div>
+      </div>
+    </header>
+    <div style="flex:1;overflow:auto;padding:0 24px 60px 24px" onClick="{{ onCloseEdits }}">
+      <sc-if value="{{ loading }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:30px 0;display:flex;flex-direction:column;gap:14px">
+          <div style="height:16px;width:220px;background:var(--bd2);border-radius:4px"></div>
+          <div style="height:38px;background:var(--s3);border-radius:6px"></div>
+          <div style="height:38px;background:var(--s3);border-radius:6px"></div>
+          <div style="height:38px;background:var(--s3);border-radius:6px"></div>
+        </div>
+      </sc-if>
+      <sc-for list="{{ vgroups }}" as="g" hint-placeholder-count="2">
+        <section onDragOver="{{ g.onDragOver }}" onDragLeave="{{ g.onDragLeave }}" onDrop="{{ g.onDrop }}" style="width:max-content;min-width:100%;margin-top:22px;border-radius:10px;border:1.5px solid {{ g.colorSoft }};padding:12px 12px 14px 12px;outline:{{ g.dropOutline }};outline-offset:4px;background:{{ g.dropBg }};border-left-width:5px;border-left-color:{{ g.color }}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;position:sticky;left:0">
+            <button onClick="{{ g.onToggle }}" style="background:none;border:none;cursor:pointer;padding:2px;display:flex;color:{{ g.color }}">
+              <svg width="12" height="12" viewBox="0 0 12 12" style="transform:rotate({{ g.rot }}deg);transition:transform .15s"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </button>
+            <div style="font-size:16px;font-weight:600;color:{{ g.color }}">{{ g.title }}</div>
+            <div style="font-size:12.5px;color:var(--tx3)">{{ g.countText }}</div>
+          </div>
+          <sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px solid var(--bd);border-radius:8px;overflow:hidden">
+              <div style="display:grid;grid-template-columns:{{ gridCols }};background:var(--s2);border-bottom:1px solid var(--bd);font-size:12px;color:var(--tx2);font-weight:600">
+                <sc-for list="{{ columns }}" as="c" hint-placeholder-count="16">
+                  <div draggable="true" onDragStart="{{ c.onColDragStart }}" onDragOver="{{ c.onColDragOver }}" onDrop="{{ c.onColDrop }}" onDragEnd="{{ c.onColDragEnd }}" onClick="{{ c.onSort }}" title="Click to sort, drag to move" style="order:{{ c.ord }};position:relative;padding:8px 10px;padding-left:{{ c.pl }}px;border-right:1px solid var(--bd);border-left:2px solid {{ c.dropMark }};text-align:{{ c.align }};cursor:pointer" style-hover="background:#eef2fb">{{ c.label }} <span style="color:#0073ea;font-size:9px">{{ c.arrow }}</span><div onMouseDown="{{ c.onResize }}" onClick="{{ stopProp }}" title="Drag to resize" style="position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:3" style-hover="background:#0073ea55"></div></div>
+                </sc-for>
+              </div>
+              <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3">
+                <div key="{{ it.id }}" onDragOver="{{ it.onRowDragOver }}" onDrop="{{ it.onRowDrop }}" style="border-bottom:1px solid var(--bd2);border-top:2px solid {{ it.dropLine }}">
+                  <div draggable="true" onDragStart="{{ it.onDragStart }}" onDragEnd="{{ it.onDragEnd }}" style="display:grid;grid-template-columns:{{ gridCols }};background:var(--s1);font-size:13.5px;opacity:{{ it.dragOpacity }};cursor:grab" style-hover="background:var(--hov)">
+                    <div style="order:{{ co.c0 }};display:flex;align-items:center;gap:4px;border-left:6px solid {{ g.color }};border-right:1px solid var(--bd2);padding:0 6px 0 4px;height:38px;min-width:0">
+                      <button onClick="{{ it.onExpand }}" title="Subitems" style="background:none;border:none;cursor:pointer;padding:2px;color:var(--tx2);display:flex">
+                        <svg width="11" height="11" viewBox="0 0 12 12" style="transform:rotate({{ it.rot }}deg);transition:transform .15s"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                      </button>
+                      <sc-if value="{{ it.hasNotif }}" hint-placeholder-val="{{ false }}">
+                        <span class="cellwrap" style="flex:0 0 auto;position:relative;display:inline-flex;align-items:center;width:16px;height:16px">
+                          <span title="{{ it.notifTitle }}" style="width:16px;height:16px;border-radius:50%;background:#fdab3d;color:#fff;font-size:11px;font-weight:800;line-height:16px;text-align:center">!</span>
+                          <div class="cellplus" style="position:absolute;left:-6px;top:calc(100% + 6px);z-index:60;background:var(--s1);border:1px solid var(--bd3);border-radius:8px;box-shadow:0 12px 32px rgba(30,40,80,.22);width:260px;padding:9px 10px">
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+                              <span style="font-size:10.5px;font-weight:700;letter-spacing:.05em;color:var(--tx2)">NOTIFICATION</span>
+                              <button onClick="{{ it.onClearNotif }}" title="Clear notification" style="background:none;border:none;cursor:pointer;color:var(--tx3);font-size:12px;line-height:1;padding:2px 4px;border-radius:4px;display:flex" style-hover="background:var(--bd2);color:var(--tx)">✕</button>
+                            </div>
+                            <sc-for list="{{ it.notifList }}" as="nm" hint-placeholder-count="0">
+                              <div style="display:flex;align-items:flex-start;gap:7px;padding:3px 0">
+                                <span style="width:6px;height:6px;flex:0 0 auto;border-radius:50%;background:#fdab3d;margin-top:5px"></span>
+                                <span style="font-size:12px;line-height:1.4;color:var(--tx);word-break:break-word">{{ nm }}</span>
+                              </div>
+                            </sc-for>
+                          </div>
+                        </span>
+                      </sc-if>
+                      <input defaultValue="{{ it.name }}" onBlur="{{ it.onName }}" onKeyDown="{{ onEnterBlur }}" style="flex:1;min-width:0;border:1px solid transparent;border-radius:4px;background:transparent;font-size:13.5px;font-weight:500;color:var(--tx);padding:4px 6px;outline:none" style-hover="border-color:var(--bd3)" style-focus="border-color:#0073ea;background:var(--s1)">
+                      <span style="font-size:11px;color:var(--tx3);background:var(--bd2);border-radius:10px;padding:2px 7px;flex:0 0 auto">{{ it.subCount }}</span>
+                      <button onClick="{{ it.onChat }}" title="Conversation" style="background:none;border:none;cursor:pointer;color:{{ it.chatColor }};font-size:13px;padding:2px 4px;border-radius:4px;display:flex;align-items:center;gap:3px;flex:0 0 auto" style-hover="background:var(--bd2)">
+                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 3.5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6l-3 2.5V10.5H3a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"></path></svg>
+                        <sc-if value="{{ it.hasChat }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;font-weight:600">{{ it.chatCount }}</span></sc-if>
+                      </button>
+                      <button onClick="{{ it.onMenu }}" title="Item menu" style="background:none;border:none;cursor:pointer;color:var(--tx3);font-size:15px;padding:2px 4px;border-radius:4px;letter-spacing:1px" style-hover="background:var(--bd2);color:var(--tx)">⋯</button>
+                    </div>
+                    <div title="{{ it.condTitle }}" style="order:{{ co.c1 }};display:flex;align-items:center;border-right:1px solid var(--bd2);padding:8px 10px">
+                      <div style="display:flex;flex:1;height:22px;border-radius:4px;overflow:hidden;background:var(--bd)">
+                        <sc-for list="{{ it.condSegs }}" as="cs" hint-placeholder-count="0">
+                          <span title="{{ cs.name }}: {{ cs.n }}" style="flex:{{ cs.n }};background:{{ cs.color }};min-width:2px"></span>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div onClick="{{ it.onAgent }}" style="order:{{ co.c2 }};display:flex;align-items:center;justify-content:center;border-right:1px solid var(--bd2);cursor:pointer;padding:4px 8px" style-hover="filter:brightness(.97)"><sc-if value="{{ it.hasAgent }}" hint-placeholder-val="{{ false }}"><span style="background:{{ it.agentColor }};color:#fff;font-size:12px;font-weight:500;border-radius:12px;padding:3px 12px">{{ it.agentText }}</span></sc-if></div>
+                    <div onClick="{{ it.onDeal }}" style="order:{{ co.c3 }};display:flex;align-items:center;justify-content:center;border-right:1px solid var(--bd2);cursor:pointer;padding:0 8px;font-size:13px" style-hover="background:#eef2fb">{{ it.dealText }}</div>
+                    <div style="order:{{ co.c4 }};display:flex;align-items:center;justify-content:center;border-right:1px solid var(--bd2);padding:0 4px">
+                      <input type="date" value="{{ it.dateVal }}" onChange="{{ it.onDate }}" style="border:none;background:transparent;font-size:12.5px;color:var(--tx);outline:none;width:100%;text-align:center;cursor:pointer">
+                    </div>
+                    <div onClick="{{ it.onLender }}" title="{{ it.lenderText }}" style="order:{{ co.c5 }};display:flex;align-items:center;justify-content:center;border-right:1px solid var(--bd2);cursor:pointer;padding:0 8px;font-size:13px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" style-hover="background:#eef2fb">{{ it.lenderText }}</div>
+                    <div style="order:{{ co.c6 }};border-right:1px solid var(--bd2);display:flex;align-items:stretch">
+                      <sc-if value="{{ it.volEditing }}" hint-placeholder-val="{{ false }}">
+                        <input autofocus="" defaultValue="{{ it.volRaw }}" onBlur="{{ it.onVolCommit }}" onKeyDown="{{ onEnterBlur }}" style="width:100%;border:1px solid #0073ea;border-radius:4px;margin:4px;font-size:13px;padding:0 6px;outline:none;text-align:right">
+                      </sc-if>
+                      <sc-if value="{{ it.volNotEditing }}" hint-placeholder-val="{{ true }}">
+                        <div onClick="{{ it.onVolClick }}" style="flex:1;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;cursor:text;font-size:13px" style-hover="background:#eef2fb">{{ it.volText }}</div>
+                      </sc-if>
+                    </div>
+                    <div onClick="{{ it.onStatus }}" title="{{ it.noteStatusText }}" class="cellwrap" style="order:{{ co.c7 }};position:relative;border-right:1px solid var(--bd2);cursor:pointer;background:{{ it.statusColor }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12.5px;font-weight:500" style-hover="filter:brightness(.95)">{{ it.statusLabel }}<sc-if value="{{ it.noteStatus }}" hint-placeholder-val="{{ false }}"><span class="cellmark" style="position:absolute;top:0;right:0;width:0;height:0;border-top:9px solid rgba(255,255,255,.92);border-left:9px solid transparent"></span></sc-if><span onClick="{{ it.onNoteStatus }}" class="cellplus" title="Add note" style="position:absolute;top:2px;right:2px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:rgba(0,0,0,.28);color:#fff;font-size:13px;line-height:1;font-weight:700">+</span></div>
+                    <div onClick="{{ it.onAppraisal }}" title="{{ it.noteAppraisalText }}" class="cellwrap" style="order:{{ co.c8 }};position:relative;border-right:1px solid var(--bd2);cursor:pointer;background:{{ it.appraisalColor }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12.5px;font-weight:500" style-hover="filter:brightness(.95)">{{ it.appraisalLabel }}<sc-if value="{{ it.noteAppraisal }}" hint-placeholder-val="{{ false }}"><span class="cellmark" style="position:absolute;top:0;right:0;width:0;height:0;border-top:9px solid rgba(255,255,255,.92);border-left:9px solid transparent"></span></sc-if><span onClick="{{ it.onNoteAppraisal }}" class="cellplus" title="Add note" style="position:absolute;top:2px;right:2px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:rgba(0,0,0,.28);color:#fff;font-size:13px;line-height:1;font-weight:700">+</span></div>
+                    <div onClick="{{ it.onAppraiser }}" style="order:{{ co.c9 }};display:flex;align-items:center;justify-content:center;border-right:1px solid var(--bd2);cursor:pointer;padding:0 8px;font-size:13px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" style-hover="background:#eef2fb">{{ it.appraiserText }}</div>
+                    <div onClick="{{ it.onInstructed }}" title="{{ it.noteInstructedText }}" class="cellwrap" style="order:{{ co.c10 }};position:relative;border-right:1px solid var(--bd2);cursor:pointer;background:{{ it.instructedColor }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12.5px;font-weight:500" style-hover="filter:brightness(.95)">{{ it.instructedLabel }}<sc-if value="{{ it.noteInstructed }}" hint-placeholder-val="{{ false }}"><span class="cellmark" style="position:absolute;top:0;right:0;width:0;height:0;border-top:9px solid rgba(255,255,255,.92);border-left:9px solid transparent"></span></sc-if><span onClick="{{ it.onNoteInstructed }}" class="cellplus" title="Add note" style="position:absolute;top:2px;right:2px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:rgba(0,0,0,.28);color:#fff;font-size:13px;line-height:1;font-weight:700">+</span></div>
+                    <div onClick="{{ it.onBroker }}" style="order:{{ co.c11 }};border-right:1px solid var(--bd2);cursor:pointer;background:{{ it.brokerColor }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12.5px;font-weight:500" style-hover="filter:brightness(.95)">{{ it.brokerLabel }}</div>
+                    <div style="order:{{ co.c12 }};border-right:1px solid var(--bd2);display:flex;align-items:center;padding:0 12px" title="{{ it.progressTitle }}">
+                      <div style="flex:1;height:16px;background:var(--bd);overflow:hidden;display:flex">
+                        <div style="width:{{ it.progressPct }}%;background:#00c875"></div>
+                      </div>
+                    </div>
+                    <div onClick="{{ it.onCompliance }}" style="order:{{ co.c13 }};border-right:1px solid var(--bd2);cursor:pointer;background:{{ it.complianceColor }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12.5px;font-weight:500" style-hover="filter:brightness(.95)">{{ it.complianceLabel }}</div>
+                    <div style="order:{{ co.c14 }};border-right:1px solid var(--bd2);display:flex;align-items:center;padding:0 4px">
+                      <input defaultValue="{{ it.notes }}" onBlur="{{ it.onNotes }}" onKeyDown="{{ onEnterBlur }}" placeholder="–" style="width:100%;border:1px solid transparent;border-radius:4px;background:transparent;font-size:12.5px;color:var(--tx);padding:4px 6px;outline:none" style-hover="border-color:var(--bd3)" style-focus="border-color:#0073ea;background:var(--s1)">
+                    </div>
+                    <div style="order:{{ co.c15 }};border-right:1px solid var(--bd2);display:flex;align-items:center;padding:0 4px">
+                      <input defaultValue="{{ it.email }}" onBlur="{{ it.onEmail }}" onKeyDown="{{ onEnterBlur }}" placeholder="–" style="width:100%;border:1px solid transparent;border-radius:4px;background:transparent;font-size:12.5px;color:#0073ea;padding:4px 6px;outline:none" style-hover="border-color:var(--bd3)" style-focus="border-color:#0073ea;background:var(--s1)">
+                    </div>
+                    <div style="order:{{ co.c16 }};display:flex;align-items:center;justify-content:flex-end;padding:0 10px;font-size:12.5px;color:var(--tx2)">{{ it.formulaText }}</div>
+                  </div>
+                  <sc-if value="{{ it.expanded }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:10px 0 14px 48px;background:var(--s2);border-top:1px solid var(--bd2)">
+                      <div style="width:max-content;min-width:860px;border:1px solid var(--bd);border-radius:8px;overflow:hidden;background:var(--s1)">
+                        <div style="display:grid;grid-template-columns:minmax(280px,1fr) 130px 140px 240px 44px;background:var(--s2);border-bottom:1px solid var(--bd);font-size:11.5px;color:var(--tx2);font-weight:600">
+                          <div style="padding:7px 12px;border-right:1px solid var(--bd)">Condition / Document</div>
+                          <div style="padding:7px 10px;border-right:1px solid var(--bd);text-align:center">Status</div>
+                          <div style="padding:7px 10px;border-right:1px solid var(--bd);text-align:center">Date</div>
+                          <div style="padding:7px 10px;border-right:1px solid var(--bd)">Details</div>
+                          <div></div>
+                        </div>
+                        <sc-for list="{{ it.subs }}" as="s" hint-placeholder-count="3">
+                          <div key="{{ s.id }}" style="display:grid;grid-template-columns:minmax(280px,1fr) 130px 140px 240px 44px;border-bottom:1px solid var(--bd2);font-size:13px;background:var(--s1)" style-hover="background:var(--hov)">
+                            <div style="display:flex;align-items:center;border-left:6px solid {{ g.colorSoft }};border-right:1px solid var(--bd2);padding:0 6px;height:34px">
+                              <input defaultValue="{{ s.name }}" onBlur="{{ s.onName }}" onKeyDown="{{ onEnterBlur }}" style="flex:1;min-width:0;border:1px solid transparent;border-radius:4px;background:transparent;font-size:13px;color:var(--tx);padding:3px 6px;outline:none" style-hover="border-color:var(--bd3)" style-focus="border-color:#0073ea;background:var(--s1)">
+                            </div>
+                            <div onClick="{{ s.onCond }}" style="border-right:1px solid var(--bd2);cursor:pointer;background:{{ s.condColor }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:500" style-hover="filter:brightness(.95)">{{ s.cond }}</div>
+                            <div style="border-right:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;padding:0 4px">
+                              <input type="date" value="{{ s.dateVal }}" onChange="{{ s.onDate }}" style="border:none;background:transparent;font-size:12px;color:var(--tx);outline:none;width:100%;text-align:center;cursor:pointer">
+                            </div>
+                            <div style="border-right:1px solid var(--bd2);display:flex;align-items:center;padding:0 4px">
+                              <input defaultValue="{{ s.details }}" onBlur="{{ s.onDetails }}" onKeyDown="{{ onEnterBlur }}" placeholder="–" style="width:100%;border:1px solid transparent;border-radius:4px;background:transparent;font-size:12px;color:var(--tx);padding:3px 6px;outline:none" style-hover="border-color:var(--bd3)" style-focus="border-color:#0073ea;background:var(--s1)">
+                            </div>
+                            <div style="display:flex;align-items:center;justify-content:center">
+                              <button onClick="{{ s.onDelete }}" title="Delete subitem" style="background:none;border:none;cursor:pointer;color:#b9bcc9;font-size:13px;padding:3px 6px;border-radius:4px" style-hover="background:#fdecef;color:#df2f4a">✕</button>
+                            </div>
+                          </div>
+                        </sc-for>
+                        <div style="display:flex;align-items:center;padding:4px 6px 4px 12px">
+                          <input placeholder="+ Add condition" onKeyDown="{{ it.onAddSub }}" style="flex:1;border:1px solid transparent;border-radius:4px;background:transparent;font-size:12.5px;color:var(--tx);padding:5px 6px;outline:none" style-focus="border-color:#0073ea;background:var(--s1)">
+                        </div>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <div style="display:flex;align-items:center;border-bottom:1px solid var(--bd2);background:var(--s1)">
+                <div style="width:6px;align-self:stretch;background:{{ g.colorSoft }}"></div>
+                <input placeholder="+ Add deal" onKeyDown="{{ g.onAddItem }}" style="flex:0 0 300px;border:1px solid transparent;border-radius:4px;background:transparent;font-size:13px;color:var(--tx);padding:9px 10px;outline:none;margin:2px 0 2px 26px" style-focus="border-color:#0073ea;background:var(--s1)">
+              </div>
+              <div style="display:grid;grid-template-columns:{{ gridCols }};background:var(--sum);font-size:12.5px;color:var(--tx2)">
+                <div style="grid-column:{{ volCol }};display:flex;flex-direction:column;align-items:flex-end;padding:6px 10px;border-left:1px solid var(--bd2);border-right:1px solid var(--bd2)">
+                  <span style="font-weight:600;color:var(--tx)">{{ g.volSum }}</span>
+                  <span style="font-size:10.5px;letter-spacing:.04em">SUM</span>
+                </div>
+                <div style="grid-column:16;display:flex;flex-direction:column;align-items:flex-end;padding:6px 10px;border-left:1px solid var(--bd2)">
+                  <span style="font-weight:600;color:var(--tx)">{{ g.feeSum }}</span>
+                  <span style="font-size:10.5px;letter-spacing:.04em">SUM</span>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </section>
+      </sc-for>
+    </div>
+  </main>
+  <sc-if value="{{ chat.show }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ chat.onClose }}" style="position:fixed;inset:0;z-index:60;background:rgba(30,40,80,.28)"></div>
+    <div style="position:fixed;top:0;right:0;bottom:0;z-index:61;width:640px;max-width:94vw;background:var(--s1);box-shadow:-8px 0 28px rgba(30,40,80,.16);display:flex;flex-direction:column">
+      <div style="padding:20px 24px 0 24px;display:flex;align-items:center;gap:14px">
+        <button onClick="{{ chat.onClose }}" style="background:none;border:none;cursor:pointer;color:var(--tx);font-size:20px;padding:4px 6px;border-radius:4px;line-height:1;flex:0 0 auto" style-hover="background:var(--bd2)">✕</button>
+        <div style="min-width:0;flex:1;font-size:24px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ chat.title }}</div>
+        <div style="width:34px;height:34px;flex:0 0 auto;border-radius:50%;background:#66ccff;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">{{ chat.myInitials }}</div>
+      </div>
+      <div style="padding:14px 24px 0 24px;border-bottom:1px solid var(--bd);display:flex;gap:22px;font-size:14px;color:var(--tx2)">
+        <div onClick="{{ chat.onTabUpdates }}" style="display:flex;align-items:center;gap:7px;padding-bottom:10px;border-bottom:2px solid {{ chat.updTabLine }};color:{{ chat.updTabColor }};font-weight:{{ chat.updTabWeight }};cursor:pointer">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2.5 7.5L8 2.8l5.5 4.7M4 6.8V13a.6.6 0 0 0 .6.6h6.8A.6.6 0 0 0 12 13V6.8" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          Updates / {{ chat.count }}
+        </div>
+        <div onClick="{{ chat.onTabFiles }}" style="display:flex;align-items:center;gap:7px;padding-bottom:10px;border-bottom:2px solid {{ chat.fileTabLine }};color:{{ chat.fileTabColor }};font-weight:{{ chat.fileTabWeight }};cursor:pointer">Files<sc-if value="{{ chat.hasFiles }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;background:var(--bd2);color:var(--tx2);border-radius:10px;padding:1px 7px">{{ chat.fileCount }}</span></sc-if></div>
+        <div onClick="{{ chat.onTabAct }}" style="padding-bottom:10px;cursor:pointer;border-bottom:2px solid {{ chat.actTabLine }};color:{{ chat.actTabColor }};font-weight:{{ chat.actTabWeight }}">Activity Log</div>
+      </div>
+      <sc-if value="{{ chat.tabAct }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;overflow:auto;padding:18px 24px;display:flex;flex-direction:column">
+          <sc-if value="{{ chat.noActs }}" hint-placeholder-val="{{ true }}">
+            <div style="margin:auto;text-align:center;color:var(--tx3);font-size:13.5px;padding:40px 10px">
+              <div style="font-size:26px;margin-bottom:8px">🕐</div>
+              No activity yet.<br>Changes to this deal will appear here.
+            </div>
+          </sc-if>
+          <sc-for list="{{ chat.acts }}" as="ac" hint-placeholder-count="0">
+            
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ chat.tabFiles }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1;overflow:auto;padding:18px 24px;display:flex;flex-direction:column;gap:10px">
+          <sc-if value="{{ chat.noFiles }}" hint-placeholder-val="{{ true }}">
+            <div style="margin:auto;text-align:center;color:var(--tx3);font-size:13.5px;padding:40px 10px">
+              <div style="font-size:26px;margin-bottom:8px">📎</div>
+              No files yet.<br>Attach files to an update with the paperclip.
+            </div>
+          </sc-if>
+          <sc-for list="{{ chat.files }}" as="fl" hint-placeholder-count="0">
+            <a href="{{ fl.href }}" download="{{ fl.name }}" style="display:flex;align-items:center;gap:12px;border:1px solid var(--bd3);border-radius:10px;padding:12px 16px;text-decoration:none;color:var(--tx)" style-hover="background:#f8f9fd;border-color:#0073ea">
+              <span style="width:36px;height:36px;flex:0 0 auto;border-radius:8px;background:#e0ecfb;color:#0073ea;display:flex;align-items:center;justify-content:center;font-size:16px">📄</span>
+              <span style="min-width:0;flex:1">
+                <span style="display:block;font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ fl.name }}</span>
+                <span style="display:block;font-size:12px;color:var(--tx3);margin-top:2px">{{ fl.meta }}</span>
+              </span>
+              <span style="flex:0 0 auto;color:var(--tx3);font-size:12px">⬇</span>
+            </a>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ chat.tabUpdates }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1;overflow:auto;padding:18px 24px;display:flex;flex-direction:column;gap:16px">
+        <div style="border:1px solid var(--bd3);border-radius:10px;padding:14px 16px;position:relative" style-focus="border-color:#0073ea">
+          <sc-if value="{{ chat.mentionOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:16px;top:100%;margin-top:4px;background:var(--s1);border:1px solid var(--bd3);border-radius:8px;box-shadow:0 8px 24px rgba(30,40,80,.18);width:220px;max-height:220px;overflow:auto;padding:4px;z-index:7">
+              <sc-for list="{{ chat.mentions }}" as="p" hint-placeholder-count="0">
+                <div onMouseDown="{{ p.onPick }}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px" style-hover="background:var(--s3)">
+                  <span style="width:24px;height:24px;flex:0 0 auto;border-radius:50%;background:{{ p.avatarBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700">{{ p.initials }}</span>{{ p.name }}
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <div contentEditable="true" suppressContentEditableWarning="{{ true }}" onInput="{{ chat.onInput }}" onKeyDown="{{ chat.onKey }}" onKeyUp="{{ chat.onSelUpdate }}" onMouseUp="{{ chat.onSelUpdate }}" onFocus="{{ chat.onSelUpdate }}" ref="{{ chat.taRef }}" data-ph="Write an update and mention others with @" style="width:100%;min-height:44px;max-height:200px;overflow:auto;border:none;padding:0;font-size:14.5px;line-height:1.5;outline:none;color:var(--tx);font-family:'Figtree',sans-serif;background:transparent;word-break:break-word"></div>
+          <sc-if value="{{ chat.hasPending }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+              <sc-for list="{{ chat.pending }}" as="pf" hint-placeholder-count="0">
+                <span style="display:flex;align-items:center;gap:6px;background:var(--bd2);border-radius:14px;padding:4px 6px 4px 10px;font-size:12px;color:var(--tx);max-width:220px">📎 <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ pf.name }}</span><button onClick="{{ pf.onRemove }}" style="background:none;border:none;cursor:pointer;color:var(--tx3);font-size:11px;padding:0 2px;line-height:1" style-hover="color:#df2f4a">✕</button></span>
+              </sc-for>
+            </div>
+          </sc-if>
+          <div style="display:flex;gap:2px;align-items:center;position:relative;margin-top:10px">
+            <sc-for list="{{ chat.fmts }}" as="f" hint-placeholder-count="6">
+              <button onMouseDown="{{ f.onApply }}" title="{{ f.title }}" style="background:{{ f.bg }};border:1px solid {{ f.bord }};border-radius:5px;min-width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:{{ f.fg }};font-size:12.5px;font-weight:{{ f.weight }};font-style:{{ f.fstyle }};text-decoration:{{ f.deco }};font-family:{{ f.family }};padding:0 4px" style-hover="background:var(--bd2);color:var(--tx)">{{ f.glyph }}</button>
+            </sc-for>
+            <span style="width:1px;height:16px;background:var(--bd);margin:0 4px"></span>
+            <button onMouseDown="{{ chat.onAttach }}" title="Attach file" style="background:none;border:1px solid transparent;border-radius:5px;width:28px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx2)" style-hover="background:var(--bd2);color:var(--tx)">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M10.5 4.5l-4.6 4.6a1.6 1.6 0 0 0 2.26 2.26l5-5a3.2 3.2 0 0 0-4.52-4.52l-5 5a4.8 4.8 0 0 0 6.78 6.78l4.1-4.1" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </button>
+            <input type="file" multiple="" ref="{{ chat.fileRef }}" onChange="{{ chat.onFiles }}" style="display:none">
+            <button onMouseDown="{{ chat.onFontMenu }}" title="Font" style="background:none;border:1px solid transparent;border-radius:5px;height:26px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--tx2);font-size:12px;padding:0 6px" style-hover="background:var(--bd2);color:var(--tx)">{{ chat.fontLabel }}<span style="font-size:8px">▼</span></button>
+            <button onMouseDown="{{ chat.onColorMenu }}" title="Text color" style="background:none;border:1px solid transparent;border-radius:5px;width:28px;height:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--tx2);font-size:12.5px;font-weight:700;line-height:1;gap:2px" style-hover="background:var(--bd2);color:var(--tx)">A<span style="width:14px;height:3px;border-radius:2px;background:{{ chat.colorSwatch }}"></span></button>
+            <button onMouseDown="{{ chat.onCompose }}" title="AI writing help" style="background:none;border:1px solid transparent;border-radius:5px;height:26px;display:flex;align-items:center;gap:4px;cursor:pointer;color:#7a3ff2;font-size:12px;font-weight:600;padding:0 7px" style-hover="background:#f2ecfe">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 1.5l1.5 4L14 7l-4.5 1.5L8 13l-1.5-4.5L2 7l4.5-1.5L8 1.5z" fill="currentColor"></path></svg>
+              <sc-if value="{{ chat.composeBusy }}" hint-placeholder-val="{{ false }}"><span>…</span></sc-if>
+              <sc-if value="{{ chat.composeErr }}" hint-placeholder-val="{{ false }}"><span style="color:#e2445c">AI off</span></sc-if>
+            </button>
+            <sc-if value="{{ chat.composeMenuOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;right:96px;top:100%;margin-top:4px;background:var(--s1);border:1px solid var(--bd3);border-radius:8px;box-shadow:0 8px 24px rgba(30,40,80,.18);width:200px;padding:4px;z-index:7">
+                <div onMouseDown="{{ chat.onDraftUpdate }}" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--tx)" style-hover="background:var(--s3)"><span style="color:#7a3ff2">✨</span>Draft an update</div>
+                <div onMouseDown="{{ chat.onImprove }}" style="display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--tx)" style-hover="background:var(--s3)"><span style="color:#7a3ff2">✎</span>Improve what I wrote</div>
+              </div>
+            </sc-if>
+            <button onClick="{{ chat.onSend }}" style="margin-left:auto;background:#0073ea;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13.5px;font-weight:600;cursor:pointer;flex:0 0 auto" style-hover="background:#0060b9">Update</button>
+            <sc-if value="{{ chat.fontMenuOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;left:0;top:100%;margin-top:4px;background:var(--s1);border:1px solid var(--bd3);border-radius:8px;box-shadow:0 8px 24px rgba(30,40,80,.18);width:170px;padding:4px;z-index:6">
+                <sc-for list="{{ chat.fonts }}" as="fo" hint-placeholder-count="0">
+                  <div onMouseDown="{{ fo.onPick }}" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px;font-family:{{ fo.family }};color:var(--tx)" style-hover="background:var(--s3)"><span style="width:14px;color:#0073ea;font-weight:700;font-family:'Figtree',sans-serif">{{ fo.check }}</span>{{ fo.name }}</div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ chat.colorMenuOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;left:60px;top:100%;margin-top:4px;background:var(--s1);border:1px solid var(--bd3);border-radius:8px;box-shadow:0 8px 24px rgba(30,40,80,.18);padding:8px;z-index:6;display:grid;grid-template-columns:repeat(4,22px);gap:6px">
+                <sc-for list="{{ chat.colors }}" as="co" hint-placeholder-count="0">
+                  <span onMouseDown="{{ co.onPick }}" title="{{ co.name }}" style="width:22px;height:22px;border-radius:5px;background:{{ co.hex }};cursor:pointer;border:2px solid {{ co.border }}" style-hover="filter:brightness(.9)"></span>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+        <sc-if value="{{ chat.empty }}" hint-placeholder-val="{{ true }}">
+          <div style="margin:auto;text-align:center;color:var(--tx3);font-size:13.5px;padding:40px 10px">
+            <div style="font-size:26px;margin-bottom:8px">💬</div>
+            No updates yet.<br>Write the first update above.
+          </div>
+        </sc-if>
+        <sc-for list="{{ chat.msgs }}" as="m" hint-placeholder-count="0">
+          <div style="border:1px solid var(--bd3);border-radius:10px">
+            <div style="padding:16px 18px 14px 18px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:38px;height:38px;flex:0 0 auto;border-radius:50%;background:{{ m.avatarBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">{{ m.initials }}</div>
+                <span style="font-size:14.5px;font-weight:700;color:var(--tx)">{{ m.author }}</span>
+                <span style="font-size:13px;color:var(--tx3)">{{ m.time }}</span>
+                <button onClick="{{ m.onDelete }}" title="Delete" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#c5c7d0;font-size:13px;padding:2px 6px;border-radius:4px;flex:0 0 auto" style-hover="background:#fdecef;color:#df2f4a">✕</button>
+              </div>
+              <div style="margin-top:12px;font-size:14px;line-height:1.5;color:var(--tx);white-space:pre-wrap;word-break:break-word">{{ m.body }}</div>
+              <sc-if value="{{ m.hasFiles }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">
+                  <sc-for list="{{ m.files }}" as="mf" hint-placeholder-count="0">
+                    <a href="{{ mf.href }}" download="{{ mf.name }}" style="display:flex;align-items:center;gap:6px;background:var(--s3);border:1px solid var(--bd);border-radius:14px;padding:4px 12px;font-size:12px;color:var(--tx);text-decoration:none;max-width:240px" style-hover="background:#e0ecfb;border-color:#0073ea">📎 <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ mf.name }}</span><span style="color:var(--tx3)">{{ mf.size }}</span></a>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+            <div style="border-top:1px solid var(--bd);padding:10px 18px;display:flex;gap:26px">
+              <button onClick="{{ m.onLike }}" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:13.5px;color:{{ m.likeColor }};font-weight:{{ m.likeWeight }};padding:2px 4px;border-radius:4px;font-family:'Figtree',sans-serif" style-hover="background:var(--bd2)">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M4.5 7v6.5m0-6.5l2.6-4.6a1.3 1.3 0 0 1 2.4.9L9 5.5h3.2a1.3 1.3 0 0 1 1.27 1.58l-1.1 5.4a1.3 1.3 0 0 1-1.27 1.02H4.5m0-6.5H2.8a.8.8 0 0 0-.8.8v4.9a.8.8 0 0 0 .8.8h1.7" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                {{ m.likeLabel }}
+              </button>
+              <button onClick="{{ m.onReply }}" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:13.5px;color:var(--tx2);padding:2px 4px;border-radius:4px;font-family:'Figtree',sans-serif" style-hover="background:var(--bd2)">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M6.5 3.5L3 7l3.5 3.5M3.5 7h6a3.5 3.5 0 0 1 3.5 3.5v2" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                Reply
+              </button>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+    </div>
+  </sc-if>
+  <sc-if value="{{ pop.show }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ onClosePop }}" style="position:fixed;inset:0;z-index:50"></div>
+    <div style="position:fixed;left:{{ pop.x }}px;top:{{ pop.y }}px;z-index:51;background:var(--s1);border:1px solid var(--bd3);border-radius:8px;box-shadow:0 8px 24px rgba(30,40,80,.18);width:max-content;min-width:220px;max-width:320px;max-height:min(440px,80vh);overflow:auto;padding:6px">
+      <sc-if value="{{ pop.isCellNote }}" hint-placeholder-val="{{ false }}">
+        <div style="width:268px;padding:4px 6px 6px 6px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--tx3);padding:0 2px 7px 2px">{{ pop.noteTitle }}</div>
+          <sc-if value="{{ pop.hasNotes }}" hint-placeholder-val="{{ false }}">
+            <div style="max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:9px">
+              <sc-for list="{{ pop.notes }}" as="n" hint-placeholder-count="0">
+                <div style="position:relative;background:var(--s3);border:1px solid var(--bd2);border-radius:6px;padding:7px 26px 7px 9px">
+                  <div style="font-size:12.5px;color:var(--tx);line-height:1.4;white-space:pre-wrap;word-break:break-word">{{ n.text }}</div>
+                  <div style="font-size:10.5px;color:var(--tx3);margin-top:3px">{{ n.when }}</div>
+                  <span onClick="{{ n.onDelete }}" title="Delete note" style="position:absolute;top:5px;right:5px;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:4px;color:var(--tx3);font-size:12px;cursor:pointer" style-hover="background:var(--bd);color:#df2f4a">✕</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ pop.noNotes }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size:12px;color:var(--tx3);padding:2px 2px 9px 2px">No notes yet. Add the first one below.</div>
+          </sc-if>
+          <textarea value="{{ pop.draft }}" onChange="{{ pop.onDraft }}" onKeyDown="{{ pop.onDraftKey }}" placeholder="Add a note…" rows="2" style="width:100%;border:1px solid var(--bd3);border-radius:5px;padding:7px 9px;font-size:12.5px;color:var(--tx);outline:none;font-family:'Figtree',sans-serif;resize:vertical;line-height:1.45" style-focus="border-color:#0073ea"></textarea>
+          <div style="display:flex;gap:6px;margin-top:7px">
+            <button onClick="{{ pop.onAddNote }}" style="flex:1;background:#0073ea;color:#fff;border:none;border-radius:5px;padding:7px 0;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:#0060b9">Add note</button>
+            <button onClick="{{ pop.onNoteDone }}" style="background:none;border:1px solid #d7dae6;border-radius:5px;padding:7px 13px;font-size:12.5px;font-weight:600;color:var(--tx2);cursor:pointer" style-hover="background:var(--s3)">Close</button>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ pop.isNewDeal }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:4px 6px 8px 6px;border-bottom:1px solid var(--bd2);margin-bottom:4px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--tx3);padding:0 2px 5px 2px">DEAL NAME</div>
+          <input value="{{ pop.newDealName }}" onChange="{{ pop.onNewDealName }}" placeholder="Client name…" style="width:100%;border:1px solid var(--bd3);border-radius:5px;padding:7px 9px;font-size:13px;color:var(--tx);outline:none;font-family:'Figtree',sans-serif" style-focus="border-color:#0073ea">
+          <div style="font-size:11px;color:var(--tx3);padding:5px 2px 0 2px">Then pick a deal type:</div>
+        </div>
+      </sc-if>
+      <sc-for list="{{ pop.blocks }}" as="o" hint-placeholder-count="0">
+        <div onClick="{{ o.onClick }}" style="position:relative;background:{{ o.color }};color:#fff;border-radius:4px;margin:3px 4px;padding:7px 22px;font-size:12.5px;font-weight:500;text-align:center;cursor:pointer;border:2px solid {{ o.border }}" style-hover="filter:brightness(.93)">{{ o.label }}<sc-if value="{{ o.canDelete }}" hint-placeholder-val="{{ false }}"><span onClick="{{ o.onDeleteOpt }}" title="Remove agent" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:10px;background:rgba(255,255,255,.25);cursor:pointer" style-hover="background:rgba(0,0,0,.3)">✕</span></sc-if></div>
+      </sc-for>
+      <sc-if value="{{ pop.isAgent }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:5px;margin:6px 4px 3px 4px;padding-top:7px;border-top:1px solid var(--bd2)">
+          <input value="{{ pop.newAgentName }}" onChange="{{ pop.onNewAgentName }}" onKeyDown="{{ pop.onAddAgentKey }}" placeholder="New agent name…" style="flex:1;min-width:0;border:1px solid var(--bd3);border-radius:5px;padding:6px 8px;font-size:12.5px;color:var(--tx);outline:none;font-family:'Figtree',sans-serif" style-focus="border-color:#0073ea">
+          <button onClick="{{ pop.onAddAgent }}" style="background:#0073ea;color:#fff;border:none;border-radius:5px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;flex:0 0 auto" style-hover="background:#0060b9">Add</button>
+        </div>
+      </sc-if>
+      <sc-for list="{{ pop.rows }}" as="o" hint-placeholder-count="0">
+        <div onClick="{{ o.onClick }}" style="display:flex;align-items:center;gap:8px;padding:7px 10px;font-size:13px;border-radius:5px;cursor:pointer;color:{{ o.color }}" style-hover="background:var(--s3)">
+          <span style="width:14px;flex:0 0 auto;color:#0073ea;font-weight:700">{{ o.check }}</span>{{ o.label }}
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{ trashOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ onTrashClose }}" style="position:fixed;inset:0;background:rgba(41,47,76,.45);z-index:70;display:flex;align-items:center;justify-content:center">
+      <div onClick="{{ stopProp }}" style="background:var(--s1);border-radius:12px;width:600px;max-width:calc(100vw - 48px);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(30,40,80,.3)">
+        <div style="padding:20px 24px 14px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px">
+          <span style="font-size:17px">🗑️</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:17px;font-weight:700;color:var(--tx)">Trash</div>
+            <div style="font-size:12px;color:var(--tx3);margin-top:1px">Deleted deals and boards are kept for 30 days, then removed automatically.</div>
+          </div>
+          <sc-if value="{{ hasTrash }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ onTrashEmpty }}" style="background:none;border:1px solid #df2f4a;border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:600;color:#df2f4a;cursor:pointer;flex:0 0 auto" style-hover="background:#fdecef">Empty trash</button>
+          </sc-if>
+          <button onClick="{{ onTrashClose }}" style="background:none;border:none;cursor:pointer;color:var(--tx3);font-size:17px;padding:2px 6px;border-radius:4px;flex:0 0 auto" style-hover="background:var(--bd2);color:var(--tx)">✕</button>
+        </div>
+        <div style="flex:1;overflow:auto;padding:10px 24px 18px 24px">
+          <sc-if value="{{ noTrash }}" hint-placeholder-val="{{ true }}">
+            <div style="text-align:center;color:var(--tx3);font-size:13.5px;padding:44px 10px">Trash is empty.</div>
+          </sc-if>
+          <sc-for list="{{ trashItems }}" as="t" hint-placeholder-count="0">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd2)">
+              <span style="font-size:16px;flex:0 0 auto">{{ t.icon }}</span>
+              <div style="min-width:0;flex:1">
+                <div style="font-size:13.5px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.name }}</div>
+                <div style="font-size:12px;color:var(--tx3);margin-top:2px">{{ t.meta }}</div>
+              </div>
+              <button onClick="{{ t.onRestore }}" title="Restore to original location" style="background:none;border:1px solid #0073ea;border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:600;color:#0073ea;cursor:pointer;flex:0 0 auto" style-hover="background:#e0ecfb">Restore</button>
+              <button onClick="{{ t.onPurge }}" title="Delete forever" style="background:none;border:none;cursor:pointer;color:#c5c7d0;font-size:13px;padding:4px 6px;border-radius:4px;flex:0 0 auto" style-hover="background:#fdecef;color:#df2f4a">✕</button>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ autosOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ onAutosClose }}" style="position:fixed;inset:0;background:rgba(41,47,76,.45);z-index:70;display:flex;align-items:center;justify-content:center">
+      <div onClick="{{ stopProp }}" style="background:var(--s1);border-radius:12px;width:640px;max-width:calc(100vw - 48px);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(30,40,80,.3)">
+        <div style="padding:20px 24px 14px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M8.8 1.5L3 9h4l-.8 5.5L12 7H8z" stroke="#0073ea" stroke-width="1.3" fill="none" stroke-linejoin="round"></path></svg>
+          <div style="flex:1;font-size:17px;font-weight:700;color:var(--tx)">Board automations</div>
+          <button onClick="{{ onAutosClose }}" style="background:none;border:none;cursor:pointer;color:var(--tx3);font-size:17px;padding:2px 6px;border-radius:4px" style-hover="background:var(--bd2);color:var(--tx)">✕</button>
+        </div>
+        <div style="flex:1;overflow:auto;padding:10px 24px 18px 24px">
+          <sc-for list="{{ autosList }}" as="a" hint-placeholder-count="14">
+            <div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid var(--bd2)">
+              <span style="min-width:0;flex:1;font-size:13.5px;line-height:1.45;color:var(--tx)">{{ a.text }}</span>
+              <span onClick="{{ a.onToggle }}" title="Toggle automation" style="width:36px;height:20px;flex:0 0 auto;border-radius:10px;background:{{ a.knobBg }};position:relative;cursor:pointer;transition:background .15s">
+                <span style="position:absolute;top:2px;left:{{ a.knobX }}px;width:16px;height:16px;border-radius:50%;background:var(--s1);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .15s"></span>
+              </span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ ai.open }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ ai.onClose }}" style="position:fixed;inset:0;background:rgba(41,47,76,.45);z-index:75;display:flex;align-items:center;justify-content:center">
+      <div onClick="{{ stopProp }}" style="background:var(--s1);border-radius:12px;width:640px;max-width:calc(100vw - 48px);height:84vh;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(30,40,80,.3);overflow:hidden">
+        <div style="padding:18px 22px;background:linear-gradient(135deg,#7a3ff2,#0073ea);color:#fff;display:flex;align-items:center;gap:11px">
+          <svg width="20" height="20" viewBox="0 0 16 16" fill="none"><path d="M8 1.5l1.5 4L14 7l-4.5 1.5L8 13l-1.5-4.5L2 7l4.5-1.5L8 1.5z" fill="#fff"></path><path d="M13 11l.7 1.8L15.5 13.5l-1.8.7L13 16l-.7-1.8L10.5 13.5l1.8-.7L13 11z" fill="#fff" opacity=".85"></path></svg>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:16.5px;font-weight:700">AI assistant</div>
+            <sc-if value="{{ ai.hasDeal }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;opacity:.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ ai.dealName }}</div></sc-if>
+          </div>
+          <sc-if value="{{ ai.hasMsgs }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ ai.onNewChat }}" title="New chat" style="background:rgba(255,255,255,.18);border:none;cursor:pointer;color:#fff;font-size:12px;font-weight:600;padding:0 12px;height:28px;border-radius:6px;flex:0 0 auto" style-hover="background:rgba(255,255,255,.32)">New chat</button>
+          </sc-if>
+          <button onClick="{{ ai.onClose }}" style="background:rgba(255,255,255,.18);border:none;cursor:pointer;color:#fff;font-size:16px;width:28px;height:28px;border-radius:6px;flex:0 0 auto" style-hover="background:rgba(255,255,255,.32)">✕</button>
+        </div>
+        <div id="aiScrollArea" style="flex:1;overflow:auto;padding:18px 22px">
+          <sc-if value="{{ ai.showEmpty }}" hint-placeholder-val="{{ true }}">
+            <div style="text-align:center;color:var(--tx3);font-size:13.5px;padding:24px 14px 20px;line-height:1.6">
+              <div style="font-size:30px;margin-bottom:10px">✨</div>
+              Chat with your pipeline. Ask questions, or tell me to make changes — I'll propose them for your approval before anything updates.<br>
+              <span style="font-size:12px">e.g. "mark Kim, Diana as approved" · "move Sheridan to Submitted" · "which deals close this month?"</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-bottom:16px">
+              <sc-for list="{{ ai.chips }}" as="chip" hint-placeholder-count="4">
+                <button onClick="{{ ai.onChip }}" data-arg="{{ chip }}" style="background:var(--s1);border:1px solid #e2e5f0;border-radius:16px;padding:6px 13px;font-size:12.5px;font-weight:500;color:#525478;cursor:pointer" style-hover="border-color:#7a3ff2;color:#7a3ff2;background:#faf8ff">{{ chip }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:6px">
+              <sc-if value="{{ ai.hasDeal }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ ai.onSummary }}" style="background:#f2ecfe;border:1px solid #e2d5fb;border-radius:16px;padding:6px 13px;font-size:12.5px;font-weight:600;color:#7a3ff2;cursor:pointer" style-hover="background:#e9defc">Summarize this deal</button>
+                <button onClick="{{ ai.onNext }}" style="background:#f2ecfe;border:1px solid #e2d5fb;border-radius:16px;padding:6px 13px;font-size:12.5px;font-weight:600;color:#7a3ff2;cursor:pointer" style-hover="background:#e9defc">Suggest next step</button>
+              </sc-if>
+              <button onClick="{{ ai.onDigest }}" style="background:#eef2fb;border:1px solid #dbe6fa;border-radius:16px;padding:6px 13px;font-size:12.5px;font-weight:600;color:#0073ea;cursor:pointer" style-hover="background:#e0ecfb">📋 Board digest</button>
+              <button onClick="{{ ai.onStalled }}" style="background:#fef2ee;border:1px solid #fbdccf;border-radius:16px;padding:6px 13px;font-size:12.5px;font-weight:600;color:#e8721c;cursor:pointer" style-hover="background:#fde6da">⚠️ Stalled deals</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ ai.hasMsgs }}" hint-placeholder-val="{{ false }}">{{ ai.transcript }}</sc-if>
+          <sc-if value="{{ ai.loading }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:9px;color:var(--tx3);margin-top:12px;max-width:92%">
+              <div style="display:flex;align-items:center;gap:9px;font-size:13px;color:#7a3ff2;font-weight:600"><span style="font-size:15px">✨</span>Thinking…</div>
+              <div style="height:12px;background:#f0eefb;border-radius:5px;width:90%"></div>
+              <div style="height:12px;background:#f0eefb;border-radius:5px;width:75%"></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ ai.hasError }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fef2ee;border:1px solid #fbdccf;border-radius:9px;padding:14px 16px;font-size:13px;color:#b5541a;line-height:1.5;margin-top:12px">{{ ai.error }}</div>
+          </sc-if>
+        </div>
+        <div style="padding:12px 18px 8px;border-top:1px solid var(--bd2);flex:0 0 auto">
+          <sc-if value="{{ ai.hasMsgs }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px">
+              <sc-if value="{{ ai.hasDeal }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ ai.onSummary }}" style="background:#f7f4fe;border:1px solid #eadffb;border-radius:14px;padding:4px 11px;font-size:11.5px;font-weight:600;color:#7a3ff2;cursor:pointer" style-hover="background:#efe7fc">Summarize deal</button>
+                <button onClick="{{ ai.onNext }}" style="background:#f7f4fe;border:1px solid #eadffb;border-radius:14px;padding:4px 11px;font-size:11.5px;font-weight:600;color:#7a3ff2;cursor:pointer" style-hover="background:#efe7fc">Next step</button>
+              </sc-if>
+              <button onClick="{{ ai.onDigest }}" style="background:#f2f6fd;border:1px solid #e2ecfb;border-radius:14px;padding:4px 11px;font-size:11.5px;font-weight:600;color:#0073ea;cursor:pointer" style-hover="background:#e6effc">📋 Digest</button>
+              <button onClick="{{ ai.onStalled }}" style="background:#fdf5f1;border:1px solid #fbe3d7;border-radius:14px;padding:4px 11px;font-size:11.5px;font-weight:600;color:#e8721c;cursor:pointer" style-hover="background:#fce8dd">⚠️ Stalled</button>
+            </div>
+          </sc-if>
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            <textarea value="{{ ai.question }}" onChange="{{ ai.onQ }}" onKeyDown="{{ ai.onAskKey }}" placeholder="{{ ai.inputPlaceholder }}" rows="1" style="flex:1;min-width:0;border:1px solid var(--bd3);border-radius:9px;padding:10px 13px;font-size:13.5px;color:var(--tx);outline:none;font-family:'Figtree',sans-serif;resize:none;max-height:120px;line-height:1.45" style-focus="border-color:#7a3ff2"></textarea>
+            <sc-if value="{{ ai.voiceSupported }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ ai.onMic }}" title="{{ ai.micTitle }}" style="background:{{ ai.micBg }};color:{{ ai.micColor }};border:1px solid {{ ai.micBorder }};border-radius:9px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto;transition:background .15s" style-hover="filter:brightness(0.97)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+              </button>
+            </sc-if>
+            <button onClick="{{ ai.onAsk }}" style="background:#7a3ff2;color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;flex:0 0 auto" style-hover="filter:brightness(1.08)">Send</button>
+          </div>
+          <div style="font-size:11px;color:var(--tx3);line-height:1.4;margin-top:8px">AI reads only this board's data and proposes changes for your approval before anything updates. Answers can be imperfect — double-check before acting.</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ confirm.show }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ confirm.onCancel }}" style="position:fixed;inset:0;background:rgba(41,47,76,.45);z-index:80;display:flex;align-items:center;justify-content:center">
+      <div onClick="{{ stopProp }}" style="background:var(--s1);border-radius:10px;padding:24px;width:400px;max-width:calc(100vw - 48px);box-shadow:0 16px 48px rgba(30,40,80,.3)">
+        <div style="font-size:16.5px;font-weight:700;color:var(--tx)">{{ confirm.title }}</div>
+        <div style="font-size:13.5px;color:var(--tx2);margin-top:8px;line-height:1.5">{{ confirm.msg }}</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:22px">
+          <button onClick="{{ confirm.onCancel }}" style="background:none;border:1px solid var(--bd3);border-radius:6px;padding:8px 16px;font-size:13px;color:var(--tx2);cursor:pointer" style-hover="background:var(--s3)">Cancel</button>
+          <sc-if value="{{ confirm.showConfirm }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ confirm.onConfirm }}" style="background:{{ confirm.btnBg }};border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;color:#fff;cursor:pointer" style-hover="filter:brightness(1.08)">{{ confirm.label }}</button>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startCollapsed&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;searchSubitems&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;currency&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;$&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Formatting&quot;}}">
+const LS = "caymus_board_anthony_v1";
+const LS_COLS = "caymus_board_anthony_cols_v1";
+const LS_COLLAPSE = "caymus_board_anthony_collapse_v1";
+const LS_COLORDER = "caymus_board_anthony_colorder_v1";
+const LS_BOARDS = "caymus_boards_list_v1";
+const LS_AUTOS = "caymus_autos_v1";
+const LS_NOTIF_DIS = "caymus_notif_dismissed_v1";
+const LS_TRASH = "caymus_trash_v1";
+const LS_AGENTS = "caymus_agents_v1";
+const LS_THEME = "caymus_theme_v1";
+const AUTOS = [
+  { key: "moveSubmitted", text: 'When Status changes to "Submitted", move deal to Submitted' },
+  { key: "updateSubmitted", text: 'When Status changes to "Submitted", post update "{deal} submitted to {lender}"' },
+  { key: "moveApproved", text: 'When Status changes to "Approved", move deal to Active Deals' },
+  { key: "moveCancelled", text: 'When Status changes to "Cancelled", move deal to Cancelled' },
+  { key: "updateApproved", text: 'When Status changes to "Approved", post a pre-made update' },
+  { key: "moveBroker", text: 'When Broker Complete changes to "Complete", move deal to Broker Complete' },
+  { key: "moveCompReq", text: 'When Compliance changes to "Required", move deal to Funded - Compliance Required' },
+  { key: "moveCompDone", text: 'When Compliance changes to "Done", move deal to Funded - Compliance Done' },
+  { key: "updateApprOrdered", text: 'When Appraisal changes to "Ordered", post update "Appraisal ordered through {appraiser}"' },
+  { key: "updateApprDone", text: 'When Appraisal changes to "Completed", post a pre-made update' },
+  { key: "subDateStamp", text: "When a subitem condition changes, set its date to the current date" },
+  { key: "notifSubmitted", text: 'Every day, if Status is "Submitted", notify: "Follow up with {lender} on Submission Status"' },
+  { key: "notifInstruct", text: '10 days before Closing Date, if not instructed, notify: "Confirm instructions are sent ASAP with {lender}!!"' },
+  { key: "notifClosing", text: "When Closing Date arrives, notify: \"{deal} is closing today!\"" }
+];
+const DEF_BOARDS = ["CAYMUS '25 (Anthony)", "CAYMUS '25 (Chris)", "CAYMUS '24 (Anthony)", "RIZZI '26"];
+const DEF_COLS = [340, 150, 110, 110, 132, 150, 120, 130, 132, 140, 110, 140, 140, 120, 170, 180, 110];
+const COL_META = [
+  { label: "Deal / Client", align: "left", pl: 16 },
+  { label: "Conditions Progress", align: "center", pl: 10 },
+  { label: "Agent", align: "center", pl: 10 },
+  { label: "Deal", align: "center", pl: 10 },
+  { label: "Closing Date", align: "center", pl: 10 },
+  { label: "Lender", align: "center", pl: 10 },
+  { label: "Volume", align: "center", pl: 10 },
+  { label: "Status", align: "center", pl: 10 },
+  { label: "Appraisal", align: "center", pl: 10 },
+  { label: "Appraiser", align: "center", pl: 10 },
+  { label: "Instructed", align: "center", pl: 10 },
+  { label: "Broker Complete", align: "center", pl: 10 },
+  { label: "Progress", align: "center", pl: 10 },
+  { label: "Compliance", align: "center", pl: 10 },
+  { label: "Notes", align: "left", pl: 10 },
+  { label: "Email", align: "left", pl: 10 },
+  { label: "Formula", align: "left", pl: 10 }
+];
+class Component extends DCLogic {
+  onThemeToggle = () => { const dark = !this.state.dark; try { localStorage.setItem(LS_THEME, dark ? "dark" : "light"); } catch (e) { } this.setState({ dark }); };
+  state = { board: null, collapsed: {}, expanded: {}, pop: null, search: "", edit: null, allCollapsed: false, sort: null, chat: null, draft: "", chatTab: "updates", pendingFiles: [], notifs: [], autos: {}, autosOpen: false, notifOpen: false, filterAgent: null, filterLender: null, filterOpen: false, dragItem: null, dragOverGroup: null, dragOverRow: null, dragColIdx: null, dragColOver: null, trash: [], trashOpen: false, colWidths: DEF_COLS.slice(), colOrder: null, boards: null, activeBoard: null, renameBoard: null, confirm: null };
+  componentDidMount() { this._boot(); }
+  componentDidUpdate() { const el = document.getElementById("aiScrollArea"); if (el) el.scrollTop = el.scrollHeight; }
+  componentWillUnmount() { clearTimeout(this._t); this._detachResize(); }
+  _boot() {
+    const s = window.CAYMUS_SEED;
+    if (!s) { this._t = setTimeout(() => this._boot(), 80); return; }
+    this.seed = s;
+    let dark = false;
+    try { dark = localStorage.getItem(LS_THEME) === "dark"; } catch (e) { }
+    if (dark) this.setState({ dark: true });
+    try {
+      const ag = JSON.parse(localStorage.getItem(LS_AGENTS) || "null");
+      if (Array.isArray(ag) && ag.length) { s.labels.agent = ag; s.dropdowns.agent = ag.map(a => a[0]); }
+    } catch (e) { }
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(LS) || "null"); } catch (e) { }
+    const board = saved && saved.groups ? saved : JSON.parse(JSON.stringify({ groups: s.groups }));
+    const collapsed = {};
+    if (this.props.startCollapsed) s.groups.forEach(g => { collapsed[g.id] = true; });
+    try { const saved2 = JSON.parse(localStorage.getItem(LS_COLLAPSE) || "null"); if (saved2 && typeof saved2 === "object") Object.assign(collapsed, saved2); } catch (e) { }
+    let colWidths = DEF_COLS.slice();
+    try { const c = JSON.parse(localStorage.getItem(LS_COLS) || "null"); if (Array.isArray(c) && c.length === DEF_COLS.length) colWidths = c; } catch (e) { }
+    let colOrder = COL_META.map((_, i) => i);
+    try { const o = JSON.parse(localStorage.getItem(LS_COLORDER) || "null"); if (Array.isArray(o) && o.length === COL_META.length && o.slice().sort((a, b) => a - b).every((v, i) => v === i)) colOrder = o; } catch (e) { }
+    let boards = null;
+    try { boards = JSON.parse(localStorage.getItem(LS_BOARDS) || "null"); } catch (e) { }
+    if (!Array.isArray(boards) || !boards.length) boards = DEF_BOARDS.map((n, i) => ({ id: "b" + i, name: n }));
+    let autos = {};
+    try { autos = JSON.parse(localStorage.getItem(LS_AUTOS) || "{}"); } catch (e) { }
+    this.setState({ board, collapsed, allCollapsed: Object.keys(collapsed).length > 0 && s.groups.every(g => collapsed[g.id]), colWidths, colOrder, boards, activeBoard: boards[0].id, autos, trash: this.loadTrash() });
+    setTimeout(() => this.bootNotifs(board), 0);
+  }
+  saveCollapsed(c) { try { localStorage.setItem(LS_COLLAPSE, JSON.stringify(c)); } catch (e) { } }
+  saveBoards() { try { localStorage.setItem(LS_BOARDS, JSON.stringify(this.state.boards)); } catch (e) { } }
+  sortKey(i) {
+    const S = v => (v || "").toLowerCase();
+    const pct = it => { const n = (it.subs || []).length; return n ? it.subs.filter(s => s.cond === "Accepted").length / n : -1; };
+    const F = [it => S(it.name), pct, it => S(it.agent), it => S(it.deal), it => it.date || "", it => (it.lender || []).join(", ").toLowerCase(), it => Number(it.vol) || 0, it => S(it.status), it => S(it.appraisal), it => S(it.appraiser), it => S(it.instructed), it => S(it.broker), pct, it => S(it.compliance), it => S(it.notes), it => S(it.email), it => this.fee(it) || 0];
+    return F[i] || F[0];
+  }
+  saveCols() { try { localStorage.setItem(LS_COLS, JSON.stringify(this.state.colWidths)); } catch (e) { } }
+  _detachResize() { if (this._rm) { document.removeEventListener("mousemove", this._rm); document.removeEventListener("mouseup", this._ru); this._rm = this._ru = null; } }
+  resizeStart(i, e) {
+    e.preventDefault(); e.stopPropagation();
+    const startX = e.clientX, startW = this.state.colWidths[i];
+    this._rm = ev => {
+      const w = Math.max(60, startW + (ev.clientX - startX));
+      const arr = this.state.colWidths.slice(); arr[i] = w; this.setState({ colWidths: arr });
+    };
+    this._ru = () => { this._detachResize(); this.saveCols(); };
+    document.addEventListener("mousemove", this._rm); document.addEventListener("mouseup", this._ru);
+  }
+  save() { try { localStorage.setItem(LS, JSON.stringify(this.state.board)); } catch (e) { } }
+  loadTrash() {
+    let t = [];
+    try { t = JSON.parse(localStorage.getItem(LS_TRASH) || "[]"); } catch (e) { }
+    const cut = Date.now() - 30 * 86400000;
+    const kept = t.filter(x => x.ts > cut);
+    if (kept.length !== t.length) this.saveTrash(kept);
+    return kept;
+  }
+  saveTrash(t) { try { localStorage.setItem(LS_TRASH, JSON.stringify(t.slice(-100))); } catch (e) { } }
+  toTrash(entry) {
+    const t = this.loadTrash();
+    t.push(Object.assign({ tid: this.newId("t"), ts: Date.now() }, entry));
+    this.saveTrash(t);
+    this.setState({ trash: t });
+  }
+  pushUndo() {
+    this._undo = this._undo || [];
+    this._undo.push(JSON.stringify({ b: this.state.board, l: this.state.boards, a: this.state.activeBoard, o: this.state.colOrder }));
+    if (this._undo.length > 50) this._undo.shift();
+  }
+  mut(fn) {
+    this.pushUndo();
+    const before = JSON.parse(JSON.stringify(this.state.board));
+    fn(this.state.board);
+    this.runAutos(before, this.state.board);
+    this.logDiff(before, this.state.board);
+    this.save(); this.setState({ board: this.state.board, canUndo: true });
+  }
+  autoOn(key) { return (this.state.autos || {})[key] !== false; }
+  runAutos(a, b) {
+    const lender = it => (it.lender || []).join(", ") || "lender";
+    const post = (it, msg) => { if (!it.chat) it.chat = []; it.chat.push({ id: this.newId("m"), author: "Automations", text: msg, ts: Date.now() }); };
+    const notify = msg => this.pushNotif(msg);
+    const moveTo = (it, gid) => {
+      const from = b.groups.find(g => (g.items || []).some(x => x.id === it.id));
+      const to = b.groups.find(g => g.id === gid);
+      if (!from || !to || from.id === gid) return;
+      from.items = from.items.filter(x => x.id !== it.id); to.items.unshift(it);
+      b.acts = (b.acts || []).concat([{ id: this.newId("a"), ts: Date.now(), itemId: it.id, msg: 'Automation: moved deal to "' + to.title + '"' }]);
+    };
+    const am = {}; (a.groups || []).forEach(g => (g.items || []).forEach(it => { am[it.id] = it; }));
+    (b.groups || []).forEach(g => (g.items || []).slice().forEach(it => {
+      const x = am[it.id]; if (!x) return;
+      if (x.status !== it.status) {
+        if (it.status === "Submitted") {
+          if (this.autoOn("updateSubmitted")) post(it, it.name + " submitted to " + lender(it));
+          if (this.autoOn("moveSubmitted")) moveTo(it, "new_group28550");
+          notify(it.name + " submitted to " + lender(it));
+        }
+        if (it.status === "Approved") {
+          this.confetti();
+          if (this.autoOn("updateApproved")) post(it, it.name + " \u2014 approved \u2713");
+          if (this.autoOn("moveApproved")) moveTo(it, "topics");
+        }
+        if (it.status === "Cancelled") { this.poopRain(); if (this.autoOn("moveCancelled")) moveTo(it, "new_group92992"); }
+      }
+      if (x.broker !== it.broker && it.broker === "Complete") { this.fireworks(); if (this.autoOn("moveBroker")) moveTo(it, "next_month"); }
+      if (x.compliance !== it.compliance) {
+        if (it.compliance === "Required" && this.autoOn("moveCompReq")) moveTo(it, "new_group61209");
+        if (it.compliance === "Done" && this.autoOn("moveCompDone")) moveTo(it, "new_group");
+      }
+      if (x.appraisal !== it.appraisal) {
+        if (it.appraisal === "Ordered" && this.autoOn("updateApprOrdered")) post(it, it.name + " - Appraisal has been ordered through " + (it.appraiser || "appraiser"));
+        if (it.appraisal === "Completed" && this.autoOn("updateApprDone")) post(it, it.name + " \u2014 appraisal completed \u2713");
+      }
+      if (this.autoOn("subDateStamp")) {
+        const sm = {}; (x.subs || []).forEach(s => { sm[s.id] = s; });
+        (it.subs || []).forEach(s => { if (sm[s.id] && sm[s.id].cond !== s.cond) s.date = new Date().toISOString().slice(0, 10); });
+      }
+    }));
+  }
+  cellConfetti(el) {
+    if (!el || !el.getBoundingClientRect) return;
+    const r = el.getBoundingClientRect();
+    if (!r.width) return;
+    const COLORS = ["#0073ea", "#00c875", "#fdab3d", "#e2445c", "#a25ddc", "#66ccff", "#ffcb00"];
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden";
+    document.body.appendChild(wrap);
+    for (let i = 0; i < 34; i++) {
+      const p = document.createElement("div");
+      const size = 4 + Math.random() * 5;
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.5;
+      const dist = 26 + Math.random() * 64;
+      const dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist;
+      const rot = (Math.random() - 0.5) * 720;
+      const round = Math.random() > 0.5;
+      p.style.cssText = "position:absolute;left:" + cx + "px;top:" + cy + "px;width:" + size + "px;height:" + (size * (round ? 1 : 1.7)) + "px;background:" + COLORS[i % COLORS.length] + ";border-radius:" + (round ? "50%" : "1px");
+      p.animate([
+        { transform: "translate(0,0) rotate(0deg)", opacity: 1 },
+        { transform: "translate(" + dx * 0.6 + "px," + (dy * 0.6) + "px) rotate(" + rot * 0.5 + "deg)", opacity: 1, offset: 0.55 },
+        { transform: "translate(" + dx + "px," + (dy + 46) + "px) rotate(" + rot + "deg)", opacity: 0 }
+      ], { duration: 900 + Math.random() * 500, easing: "cubic-bezier(.15,.7,.35,1)", fill: "forwards" });
+      wrap.appendChild(p);
+    }
+    setTimeout(() => wrap.remove(), 1600);
+  }
+  confetti() {
+    const GLYPHS = ["💵"];
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden";
+    for (let i = 0; i < 80; i++) {
+      const p = document.createElement("div");
+      const size = 16 + Math.random() * 18, left = Math.random() * 100;
+      const dur = 2.4 + Math.random() * 1.8, delay = Math.random() * 0.6;
+      const drift = (Math.random() - 0.5) * 260, spin = (Math.random() - 0.5) * 720;
+      p.textContent = GLYPHS[i % GLYPHS.length];
+      p.style.cssText = "position:absolute;top:-40px;left:" + left + "%;font-size:" + size + "px;opacity:" + (0.8 + Math.random() * 0.2);
+      p.animate([
+        { transform: "translate(0,0) rotate(0deg)", opacity: 1 },
+        { transform: "translate(" + drift + "px," + (window.innerHeight + 60) + "px) rotate(" + spin + "deg)", opacity: 0.9 }
+      ], { duration: dur * 1000, delay: delay * 1000, easing: "cubic-bezier(.2,.6,.4,1)", fill: "forwards" });
+      wrap.appendChild(p);
+    }
+    document.body.appendChild(wrap);
+    setTimeout(() => wrap.remove(), 5200);
+  }
+  fireworks() {
+    const COLORS = ["#0073ea", "#00c875", "#fdab3d", "#e2445c", "#a25ddc", "#66ccff", "#ffcb00"];
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden";
+    document.body.appendChild(wrap);
+    const burst = (cx, cy, color) => {
+      for (let i = 0; i < 26; i++) {
+        const p = document.createElement("div");
+        const ang = (i / 26) * Math.PI * 2 + Math.random() * 0.2;
+        const dist = 70 + Math.random() * 110;
+        const size = 4 + Math.random() * 4;
+        p.style.cssText = "position:absolute;left:" + cx + "px;top:" + cy + "px;width:" + size + "px;height:" + size + "px;border-radius:50%;background:" + color + ";box-shadow:0 0 6px " + color;
+        p.animate([
+          { transform: "translate(0,0) scale(1)", opacity: 1 },
+          { transform: "translate(" + Math.cos(ang) * dist + "px," + (Math.sin(ang) * dist + 30) + "px) scale(.3)", opacity: 0 }
+        ], { duration: 900 + Math.random() * 500, easing: "cubic-bezier(.1,.7,.3,1)", fill: "forwards" });
+        wrap.appendChild(p);
+      }
+    };
+    const W = window.innerWidth, H = window.innerHeight;
+    for (let b = 0; b < 6; b++) {
+      setTimeout(() => burst(W * (0.15 + Math.random() * 0.7), H * (0.15 + Math.random() * 0.45), COLORS[Math.floor(Math.random() * COLORS.length)]), b * 320);
+    }
+    setTimeout(() => wrap.remove(), 6 * 320 + 1600);
+  }
+  poopSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const fart = (t0, base, dur) => {
+        // trumpet fart: mid-range saw through resonant formant peaks, brassy attack, loose flappy wobble
+        const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+        const fm1 = ctx.createBiquadFilter(), fm2 = ctx.createBiquadFilter();
+        o.type = "sawtooth";
+        o.frequency.setValueAtTime(base * 1.1, t0);
+        o.frequency.linearRampToValueAtTime(base, t0 + 0.05);
+        o.frequency.setValueAtTime(base, t0 + dur * 0.55);
+        o.frequency.exponentialRampToValueAtTime(base * 0.55, t0 + dur);
+        const lfo = ctx.createOscillator(), lg = ctx.createGain();
+        lfo.type = "triangle";
+        lfo.frequency.setValueAtTime(24 + Math.random() * 10, t0);
+        lfo.frequency.linearRampToValueAtTime(12, t0 + dur);
+        lg.gain.value = base * 0.35;
+        lfo.connect(lg); lg.connect(o.frequency);
+        f.type = "lowpass"; f.Q.value = 3;
+        f.frequency.setValueAtTime(1100, t0);
+        f.frequency.exponentialRampToValueAtTime(380, t0 + dur);
+        // brass formants
+        fm1.type = "peaking"; fm1.frequency.value = 480; fm1.Q.value = 3; fm1.gain.value = 10;
+        fm2.type = "peaking"; fm2.frequency.value = 900; fm2.Q.value = 4; fm2.gain.value = 6;
+        // flap gate - slower, looser than splutter
+        const sput = ctx.createGain();
+        let ts = t0;
+        sput.gain.setValueAtTime(1, t0);
+        while (ts < t0 + dur) {
+          const seg = 0.035 + Math.random() * 0.05;
+          sput.gain.linearRampToValueAtTime(0.55 + Math.random() * 0.45, ts + seg);
+          ts += seg;
+        }
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.32, t0 + 0.018);
+        g.gain.setValueAtTime(0.32, t0 + dur * 0.7);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        o.connect(f); f.connect(fm1); fm1.connect(fm2); fm2.connect(sput); sput.connect(g); g.connect(ctx.destination);
+        o.start(t0); lfo.start(t0);
+        [o, lfo].forEach(x => x.stop(t0 + dur + 0.1));
+      };
+      const t = ctx.currentTime;
+      fart(t, 120, 0.55);
+      fart(t + 0.68, 95, 0.3);
+      fart(t + 1.08, 135, 0.8);
+      fart(t + 2.0, 88, 0.45);
+      fart(t + 2.55, 112, 1.15);
+      setTimeout(() => ctx.close(), 4100);
+    } catch (e) { }
+  }
+  poopRain() {
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:9999;overflow:hidden";
+    for (let i = 0; i < 40; i++) {
+      const p = document.createElement("div");
+      const size = 18 + Math.random() * 20, left = Math.random() * 100;
+      const dur = 2.6 + Math.random() * 1.8, delay = Math.random() * 0.7;
+      const drift = (Math.random() - 0.5) * 160, spin = (Math.random() - 0.5) * 540;
+      p.textContent = "💩";
+      p.style.cssText = "position:absolute;top:-44px;left:" + left + "%;font-size:" + size + "px;opacity:" + (0.8 + Math.random() * 0.2);
+      p.animate([
+        { transform: "translate(0,0) rotate(0deg)", opacity: 1 },
+        { transform: "translate(" + drift + "px," + (window.innerHeight + 70) + "px) rotate(" + spin + "deg)", opacity: 0.9 }
+      ], { duration: dur * 1000, delay: delay * 1000, easing: "cubic-bezier(.3,.1,.6,1)", fill: "forwards" });
+      wrap.appendChild(p);
+    }
+    document.body.appendChild(wrap);
+    setTimeout(() => wrap.remove(), 5600);
+  }
+  pushNotif(msg, key, dealId) {
+    const k = key || "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    let dis = [];
+    try { dis = JSON.parse(localStorage.getItem(LS_NOTIF_DIS) || "[]"); } catch (e) { }
+    if (dis.includes(k)) return;
+    if ((this.state.notifs || []).some(n => n.key === k)) return;
+    this.state.notifs = (this.state.notifs || []).concat([{ key: k, msg, ts: Date.now(), dealId: dealId || null }]);
+    this.setState({ notifs: this.state.notifs });
+  }
+  bootNotifs(board) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const day = 86400000;
+    (board.groups || []).forEach(g => (g.items || []).forEach(it => {
+      const lender = (it.lender || []).join(", ") || "lender";
+      if (it.status === "Submitted" && this.autoOn("notifSubmitted"))
+        this.pushNotif(it.name + " - Follow up with " + lender + " on Submission Status", "sub_" + it.id + "_" + today.getTime(), it.id);
+      if (it.date) {
+        const d = new Date(it.date + "T00:00:00"); const diff = Math.round((d - today) / day);
+        if (diff === 0 && this.autoOn("notifClosing")) this.pushNotif(it.name + " is closing today!", "close_" + it.id + "_" + it.date, it.id);
+        if (diff > 0 && diff <= 10 && it.instructed !== "YES" && this.autoOn("notifInstruct"))
+          this.pushNotif(it.name + " - Closing " + it.date + " - Please confirm instructions are sent ASAP with " + lender + "!!", "instr_" + it.id + "_" + it.date, it.id);
+      }
+    }));
+  }
+  logDiff(a, b) {
+    const FL = { name: "Name", agent: "Agent", deal: "Deal", date: "Closing Date", lender: "Lender", vol: "Volume", status: "Status", appraisal: "Appraisal", appraiser: "Appraiser", instructed: "Instructed", broker: "Broker Complete", progress: "Progress", compliance: "Compliance", notes: "Notes", email: "Email" };
+    const fmt = v => { if (v === null || v === undefined || v === "" || (Array.isArray(v) && !v.length)) return "empty"; const s = Array.isArray(v) ? v.join(", ") : String(v); return '"' + (s.length > 40 ? s.slice(0, 40) + "\u2026" : s) + '"'; };
+    const acts = [];
+    const add = (itemId, msg) => acts.push({ id: this.newId("a"), ts: Date.now(), itemId, msg });
+    const mapOf = board => { const m = {}; (board.groups || []).forEach(g => (g.items || []).forEach(it => { m[it.id] = it; })); return m; };
+    const am = mapOf(a), bm = mapOf(b);
+    Object.keys(bm).forEach(id => { if (!am[id]) add(id, 'created deal "' + bm[id].name + '"'); });
+    Object.keys(am).forEach(id => { if (!bm[id]) add(null, 'deleted deal "' + am[id].name + '"'); });
+    const diffChat = (ca, cb, itemId) => {
+      const cam = {}, cbm = {};
+      (ca || []).forEach(m => { cam[m.id] = m; }); (cb || []).forEach(m => { cbm[m.id] = m; });
+      Object.keys(cbm).forEach(mid => {
+        if (!cam[mid]) add(itemId, "posted an update" + ((cbm[mid].files || []).length ? " with " + cbm[mid].files.length + " file(s)" : ""));
+        else if (!!cam[mid].liked !== !!cbm[mid].liked) add(itemId, cbm[mid].liked ? "liked an update" : "removed a like");
+      });
+      Object.keys(cam).forEach(mid => { if (!cbm[mid]) add(itemId, ""); });
+    };
+    Object.keys(bm).forEach(id => {
+      const x = am[id], y = bm[id]; if (!x) return;
+      Object.keys(FL).forEach(f => {
+        if (JSON.stringify(x[f] ?? null) !== JSON.stringify(y[f] ?? null)) add(id, FL[f] + ": " + fmt(x[f]) + " \u2192 " + fmt(y[f]));
+      });
+      const sam = {}, sbm = {};
+      (x.subs || []).forEach(s => { sam[s.id] = s; }); (y.subs || []).forEach(s => { sbm[s.id] = s; });
+      Object.keys(sbm).forEach(sid => {
+        if (!sam[sid]) { add(id, 'added subitem "' + sbm[sid].name + '"'); return; }
+        const sx = sam[sid], sy = sbm[sid];
+        [["name", "name"], ["cond", "condition"], ["date", "date"], ["details", "details"]].forEach(([f, lb]) => {
+          if (JSON.stringify(sx[f] ?? null) !== JSON.stringify(sy[f] ?? null)) add(id, 'Subitem "' + sy.name + '" ' + lb + ": " + fmt(sx[f]) + " \u2192 " + fmt(sy[f]));
+        });
+      });
+      Object.keys(sam).forEach(sid => { if (!sbm[sid]) add(id, 'deleted subitem "' + sam[sid].name + '"'); });
+      diffChat(x.chat, y.chat, id);
+    });
+    diffChat(a.chat, b.chat, "__board__");
+    if (acts.length) { b.acts = (b.acts || []).concat(acts); if (b.acts.length > 300) b.acts = b.acts.slice(-300); }
+  }
+  undo() {
+    if (!this._undo || !this._undo.length) return;
+    const s = JSON.parse(this._undo.pop());
+    this.state.board = s.b; this.save();
+    const boards = s.l || this.state.boards;
+    try { localStorage.setItem(LS_BOARDS, JSON.stringify(boards)); } catch (e) { }
+    const colOrder = s.o || this.state.colOrder;
+    try { if (s.o) localStorage.setItem(LS_COLORDER, JSON.stringify(s.o)); } catch (e) { }
+    this.setState({ board: s.b, boards, colOrder, activeBoard: s.a || this.state.activeBoard, canUndo: this._undo.length > 0, edit: null, pop: null, confirm: null });
+  }
+  find(id) { for (const g of this.state.board.groups) { const it = g.items.find(i => i.id === id); if (it) return { g, it }; } return null; }
+  // Returns the timestamped note list for a cell, migrating a legacy string to an entry.
+  cellNoteList(it, field) {
+    const v = it.cellNotes && it.cellNotes[field];
+    if (Array.isArray(v)) return v;
+    if (typeof v === "string" && v.trim()) return [{ id: this.newId("cn"), text: v, ts: Date.now() }];
+    return [];
+  }
+  openPop(e, cfg) {
+    e.stopPropagation();
+    this._popEl = e.currentTarget;
+    const r = e.currentTarget.getBoundingClientRect();
+    this.setState({ pop: Object.assign({ x: Math.max(8, Math.min(r.left, window.innerWidth - 240)), y: Math.min(r.bottom + 4, window.innerHeight - 300) }, cfg) });
+  }
+  colorOf(kind, label) { const row = (this.seed.labels[kind] || []).find(l => l[0] === label); let c = row ? row[1] : "var(--empty)"; if (this.state.dark && (c === "#333333" || c === "#c4c4c4")) c = c === "#333333" ? "#565b68" : "var(--empty)"; return c; }
+  dealLine(it) {
+    const subs = it.subs || [], done = subs.filter(s => s.cond === "Accepted").length;
+    return "- [id:" + it.id + "] " + it.name + " | type:" + (it.deal || "?") + " | agent:" + (it.agent || "—") + " | lender:" + ((it.lender || []).join("/") || "—") + " | vol:" + (it.vol || "—") + " | status:" + (it.status || "—") + " | appraisal:" + (it.appraisal || "—") + " | instructed:" + (it.instructed || "—") + " | broker:" + (it.broker || "—") + " | compliance:" + (it.compliance || "—") + " | close:" + (it.date || "—") + " | conditions:" + done + "/" + subs.length + (it.notes ? " | notes:" + it.notes : "");
+  }
+  boardSnapshot() {
+    const b = this.state.board; if (!b) return "";
+    return b.groups.map(g => "## " + g.title + " [group:" + g.id + "] (" + (g.items || []).length + " deals)\n" + ((g.items || []).map(it => this.dealLine(it)).join("\n") || "(none)")).join("\n\n");
+  }
+  dealSnapshot(it) {
+    if (!it) return "";
+    const subs = (it.subs || []).map(s => "  • " + s.name + " — " + (s.cond || "pending") + (s.date ? " (" + s.date + ")" : "") + (s.details ? " — " + s.details : "")).join("\n");
+    const chat = (it.chat || []).slice(-6).map(m => "  [" + m.author + "] " + (m.text || "")).join("\n");
+    return "Deal: " + it.name + "\nType: " + (it.deal || "?") + "\nAgent: " + (it.agent || "—") + "\nLender: " + ((it.lender || []).join(", ") || "—") + "\nVolume: " + (it.vol || "—") + "\nStatus: " + (it.status || "—") + "\nAppraisal: " + (it.appraisal || "—") + " (appraiser: " + (it.appraiser || "—") + ")\nInstructed: " + (it.instructed || "—") + "\nBroker complete: " + (it.broker || "—") + "\nCompliance: " + (it.compliance || "—") + "\nClose date: " + (it.date || "—") + "\nNotes: " + (it.notes || "—") + "\nConditions:\n" + (subs || "  (none)") + (chat ? "\nRecent updates:\n" + chat : "");
+  }
+  findAnyGroup(ref) {
+    const b = this.state.board; if (!b || !ref) return null;
+    const r = String(ref).toLowerCase();
+    return b.groups.find(g => g.id === ref) || b.groups.find(g => (g.title || "").toLowerCase() === r) || b.groups.find(g => (g.title || "").toLowerCase().includes(r)) || null;
+  }
+  // Human label for a proposed action, shown in the confirmation card
+  describeAction(a) {
+    const nm = id => { const f = this.find(id); return f ? f.it.name : id; };
+    const v = Array.isArray(a.value) ? a.value.join(", ") : a.value;
+    switch (a.type) {
+      case "set_field": return "Set " + (a.field || "field") + " → “" + v + "” on " + nm(a.dealId);
+      case "bulk_set_field": { const names = (a.dealIds || []).map(nm); const shown = names.slice(0, 4).join(", "); return "Set " + (a.field || "field") + " → “" + v + "” on " + (a.dealIds || []).length + " deals: " + shown + (names.length > 4 ? " +" + (names.length - 4) + " more" : ""); }
+      case "set_condition": return "Condition “" + a.condName + "” → " + [a.cond && ("status " + a.cond), a.date && ("date " + a.date), a.details && ("details “" + a.details + "”")].filter(Boolean).join(", ") + " on " + nm(a.dealId);
+      case "add_condition": return "Add condition “" + a.name + "” to " + nm(a.dealId);
+      case "request_conditions": { const ns = (a.conditions || a.names || []).map(n => typeof n === "string" ? n : n.name); const ids = a.dealIds || (a.dealId ? [a.dealId] : []); const tgt = ids.length > 1 ? ids.length + " deals" : nm(ids[0]); return "Request " + ns.length + " condition" + (ns.length > 1 ? "s" : "") + " on " + tgt + ": " + ns.slice(0, 5).join(", ") + (ns.length > 5 ? "…" : ""); }
+      case "move_deal": { const g = this.findAnyGroup(a.group); return "Move " + nm(a.dealId) + " → " + (g ? g.title : a.group); }
+      case "add_deal": { const g = this.findAnyGroup(a.group); return "Add deal “" + a.name + "”" + (a.deal ? " (" + a.deal + ")" : "") + (g ? " to " + g.title : ""); }
+      case "post_update": return "Post update on " + nm(a.dealId) + ": “" + a.text + "”";
+      case "order_appraisal": { const ids = a.dealIds || (a.dealId ? [a.dealId] : []); const who = a.appraiser ? " with " + a.appraiser : ""; return ids.length > 1 ? "Order appraisals" + who + " for " + ids.length + " deals: " + ids.map(nm).slice(0, 4).join(", ") : "Order appraisal" + who + " for " + nm(ids[0]) + (a.date ? " (due " + a.date + ")" : ""); }
+      case "send_client_update": { const f = this.find(a.dealId); const to = a.email || (f && f.it.email) || "client (no email on file)"; return "Send client update to " + to + " · “" + (a.subject || "mortgage update") + "”"; }
+      case "set_note": return "Set notes on " + nm(a.dealId) + ": “" + a.text + "”";
+      default: return a.type + " " + JSON.stringify(a);
+    }
+  }
+  applyActions(actions) {
+    const FIELDS = ["status", "agent", "deal", "date", "vol", "lender", "appraisal", "appraiser", "instructed", "broker", "compliance", "notes", "name"];
+    let applied = 0;
+    this.mut(b => {
+      const find = id => { for (const g of b.groups) { const it = (g.items || []).find(i => String(i.id) === String(id)); if (it) return { g, it }; } return null; };
+      const grp = ref => { const r = String(ref || "").toLowerCase(); return b.groups.find(g => g.id === ref) || b.groups.find(g => (g.title || "").toLowerCase() === r) || b.groups.find(g => (g.title || "").toLowerCase().includes(r)); };
+      (actions || []).forEach(a => {
+        try {
+          if (a.type === "set_field") {
+            const f = find(a.dealId); if (!f || !FIELDS.includes(a.field)) return;
+            if (a.field === "lender") f.it.lender = Array.isArray(a.value) ? a.value : String(a.value).split(/\s*[,/]\s*/).filter(Boolean);
+            else if (a.field === "vol") { const n = parseFloat(String(a.value).replace(/[^0-9.\-]/g, "")); f.it.vol = isNaN(n) ? null : n; }
+            else f.it[a.field] = a.value;
+            applied++;
+          } else if (a.type === "bulk_set_field") {
+            if (!FIELDS.includes(a.field)) return;
+            (a.dealIds || []).forEach(id => {
+              const f = find(id); if (!f) return;
+              if (a.field === "lender") f.it.lender = Array.isArray(a.value) ? a.value : String(a.value).split(/\s*[,/]\s*/).filter(Boolean);
+              else if (a.field === "vol") { const n = parseFloat(String(a.value).replace(/[^0-9.\-]/g, "")); f.it.vol = isNaN(n) ? null : n; }
+              else f.it[a.field] = a.value;
+            });
+            applied++;
+          } else if (a.type === "set_note") {
+            const f = find(a.dealId); if (!f) return; f.it.notes = a.text; applied++;
+          } else if (a.type === "set_condition") {
+            const f = find(a.dealId); if (!f) return;
+            const cn = String(a.condName || "").toLowerCase();
+            const s = (f.it.subs || []).find(x => (x.name || "").toLowerCase() === cn) || (f.it.subs || []).find(x => (x.name || "").toLowerCase().includes(cn));
+            if (!s) return;
+            if (a.cond !== undefined) s.cond = a.cond;
+            if (a.date !== undefined) s.date = a.date;
+            if (a.details !== undefined) s.details = a.details;
+            applied++;
+          } else if (a.type === "add_condition") {
+            const f = find(a.dealId); if (!f) return;
+            if (!f.it.subs) f.it.subs = [];
+            f.it.subs.push({ id: this.newId("s"), name: a.name, cond: a.cond || "Requested", date: a.date || null, details: a.details || null });
+            applied++;
+          } else if (a.type === "request_conditions") {
+            const names = (a.conditions || a.names || []).filter(Boolean);
+            const ids = a.dealIds || (a.dealId ? [a.dealId] : []);
+            ids.forEach(id => {
+              const f = find(id); if (!f) return;
+              if (!f.it.subs) f.it.subs = [];
+              names.forEach(nm => f.it.subs.push({ id: this.newId("s"), name: typeof nm === "string" ? nm : nm.name, cond: "Requested", date: null, details: (nm && nm.details) || null }));
+              if (!f.it.chat) f.it.chat = [];
+              f.it.chat.push({ id: this.newId("m"), author: "You (via AI)", text: "📄 Requested " + names.length + " condition" + (names.length > 1 ? "s" : "") + ": " + names.map(n => typeof n === "string" ? n : n.name).join(", "), ts: Date.now() });
+              b.acts = (b.acts || []).concat([{ id: this.newId("a"), ts: Date.now(), itemId: f.it.id, msg: "AI: requested " + names.length + " condition" + (names.length > 1 ? "s" : "") }]);
+            });
+            if (ids.length && names.length) { this.pushNotif("Requested " + names.length + " condition" + (names.length > 1 ? "s" : "") + " — " + ids.map(id => { const f = find(id); return f ? f.it.name : ""; }).filter(Boolean).join(", ")); applied++; }
+          } else if (a.type === "move_deal") {
+            const f = find(a.dealId); const to = grp(a.group); if (!f || !to || f.g.id === to.id) return;
+            f.g.items = f.g.items.filter(x => x.id !== f.it.id); to.items.unshift(f.it);
+            b.acts = (b.acts || []).concat([{ id: this.newId("a"), ts: Date.now(), itemId: f.it.id, msg: 'AI: moved deal to "' + to.title + '"' }]);
+            applied++;
+          } else if (a.type === "add_deal") {
+            const to = grp(a.group) || b.groups.find(g => !/template/i.test(g.title)) || b.groups[0]; if (!to) return;
+            const lender = a.lender ? (Array.isArray(a.lender) ? a.lender : String(a.lender).split(/\s*[,/]\s*/).filter(Boolean)) : [];
+            to.items.unshift({ id: this.newId("i"), name: a.name || "New deal", agent: a.agent || null, deal: a.deal || null, date: a.date || null, lender, vol: a.vol ? parseFloat(String(a.vol).replace(/[^0-9.\-]/g, "")) || null : null, status: a.status || null, appraisal: null, appraiser: null, instructed: null, broker: null, compliance: null, notes: a.notes || null, subs: [], chat: [] });
+            applied++;
+          } else if (a.type === "order_appraisal") {
+            const ids = a.dealIds || (a.dealId ? [a.dealId] : []);
+            ids.forEach(id => {
+              const f = find(id); if (!f) return;
+              f.it.appraisal = "Ordered";
+              if (a.appraiser) f.it.appraiser = a.appraiser;
+              if (!f.it.chat) f.it.chat = [];
+              const via = a.appraiser ? " with " + a.appraiser : "";
+              f.it.chat.push({ id: this.newId("m"), author: "You (via AI)", text: "🏠 Appraisal ordered" + via + (a.date ? " · due " + a.date : ""), ts: Date.now() });
+              b.acts = (b.acts || []).concat([{ id: this.newId("a"), ts: Date.now(), itemId: f.it.id, msg: "AI: ordered appraisal" + via }]);
+            });
+            if (ids.length) { this.pushNotif("Appraisal ordered — " + ids.length + " deal" + (ids.length > 1 ? "s" : "")); applied++; }
+          } else if (a.type === "post_update") {
+            const f = find(a.dealId); if (!f) return;
+            if (!f.it.chat) f.it.chat = [];
+            f.it.chat.push({ id: this.newId("m"), author: "You (via AI)", text: a.text, ts: Date.now() });
+            applied++;
+          } else if (a.type === "send_client_update") {
+            const f = find(a.dealId); if (!f) return;
+            const to = a.email || f.it.email || "";
+            const subj = a.subject || (f.it.name.split(",")[0] + " — mortgage update");
+            const body = a.body || a.text || "";
+            if (!f.it.chat) f.it.chat = [];
+            f.it.chat.push({ id: this.newId("m"), author: "You (via AI)", kind: "email", to, subject: subj, text: "📧 Client update sent" + (to ? " to " + to : "") + "\nSubject: " + subj + "\n\n" + body, ts: Date.now() });
+            b.acts = (b.acts || []).concat([{ id: this.newId("a"), ts: Date.now(), itemId: f.it.id, msg: 'AI: sent client update' + (to ? ' to ' + to : '') }]);
+            this.pushNotif("Client update sent for " + f.it.name);
+            applied++;
+          }
+        } catch (e) { }
+      });
+    });
+    return applied;
+  }
+  applyMsg(i) {
+    const cur = this.state.ai || {}; const msgs = (cur.msgs || []).slice();
+    const m = msgs[i]; if (!m || !m.actions) return;
+    const n = this.applyActions(m.actions);
+    msgs[i] = Object.assign({}, m, { applied: n });
+    this.setState({ ai: Object.assign({}, this.state.ai, { msgs }) });
+  }
+  dismissMsg(i) {
+    const cur = this.state.ai || {}; const msgs = (cur.msgs || []).slice();
+    const m = msgs[i]; if (!m) return;
+    msgs[i] = Object.assign({}, m, { applied: "dismissed" });
+    this.setState({ ai: Object.assign({}, cur, { msgs }) });
+  }
+  toggleMic() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+    if (this._rec && this.state.listening) { this._rec.stop(); return; }
+    const rec = new SR();
+    rec.lang = "en-US"; rec.interimResults = true; rec.continuous = false;
+    this._micBase = (this.state.ai && this.state.ai.question) || "";
+    rec.onresult = e => {
+      let txt = "";
+      for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+      const joined = (this._micBase ? this._micBase + " " : "") + txt;
+      this.setState({ ai: Object.assign({}, this.state.ai, { question: joined }) });
+    };
+    rec.onerror = e => {
+      const err = e && e.error;
+      let msg = "";
+      if (err === "not-allowed" || err === "service-not-allowed") msg = "Microphone access is blocked. Voice input needs mic permission and won't work inside an embedded preview — open the board in its own browser tab and allow the mic.";
+      else if (err === "no-speech") msg = "Didn't catch any speech — tap the mic and try again.";
+      else if (err === "audio-capture") msg = "No microphone found.";
+      else if (err && err !== "aborted") msg = "Voice input error: " + err;
+      this.setState({ listening: false, ai: msg ? Object.assign({}, this.state.ai, { error: msg }) : this.state.ai });
+    };
+    rec.onend = () => this.setState({ listening: false });
+    this._rec = rec;
+    this.setState({ listening: true, ai: Object.assign({}, this.state.ai, { open: true, error: null }) });
+    try { rec.start(); } catch (e) { this.setState({ listening: false, ai: Object.assign({}, this.state.ai, { error: "Couldn't start voice input — " + (e.message || e) }) }); }
+  }
+  async runAI(kind, opts) {
+    opts = opts || {};
+    const base = this.state.ai || {};
+    const today = new Date().toISOString().slice(0, 10);
+    // Build the human-readable label (what shows in the user's chat bubble) and the full API prompt.
+    let disp = "", prompt = "";
+    if (kind === "ask") { disp = opts.question || ""; prompt = "Board data:\n" + this.boardSnapshot() + "\n\nToday is " + today + ". Question: " + (opts.question || "") + "\n\nAnswer using only the data above. If the data doesn't contain the answer, say so."; }
+    else if (kind === "digest") { disp = "📋 Board digest"; prompt = "Board data:\n" + this.boardSnapshot() + "\n\nWrite a meeting-ready pipeline digest for a standup: a one-line headline, then per active group the deal count and total volume, then the deals needing attention, then 3 bullet takeaways."; }
+    else if (kind === "stalled") { disp = "⚠️ Stalled deals"; prompt = "Board data (today is " + today + "):\n" + this.boardSnapshot() + "\n\nIdentify deals that look stalled or at risk — old close dates, missing lender or agent, incomplete conditions, statuses that appear stuck. For each: deal name (bold), one line on why, and the single next action."; }
+    else if (kind === "summary") { disp = "Summarize " + ((opts.it && opts.it.name) || "this deal"); prompt = "Deal detail:\n" + this.dealSnapshot(opts.it) + "\n\nToday is " + today + ". Write a short plain-English status: where it stands, what's blocking it, and the immediate next action. 3-5 sentences max."; }
+    else if (kind === "next") { disp = "Suggest next step for " + ((opts.it && opts.it.name) || "this deal"); prompt = "Deal detail:\n" + this.dealSnapshot(opts.it) + "\n\nToday is " + today + ". Suggest the most likely next steps as 2-4 concrete action bullets, ordered by priority."; }
+    const prior = base.msgs || [];
+    const msgs = prior.concat([{ role: "user", content: disp }]);
+    this.setState({ ai: Object.assign({}, base, { open: true, loading: true, error: null, msgs, mode: kind, question: "", dealId: opts.dealId ?? base.dealId }) });
+    try {
+      if (!(window.claude && window.claude.complete)) throw new Error("AI runs in the live workspace preview. On a self-hosted copy this needs a small backend to hold the API key — see the handoff package.");
+      const enums = "Valid values — status: Submitted|Approved|In Progress|Cancelled; appraisal: Ordered|Scheduled|Completed|Need to Order|N/A; instructed: YES|NO|N/A; broker: Complete|Audit Done|Audit Req'd; compliance: Required|Done; condition status: Requested|Received|Reviewed|Uploaded|Accepted|Ordered.";
+      const actionDoc = "\n\nYou can also MAKE CHANGES to the board. When the user asks you to change, update, move, set, add, mark, or otherwise modify anything, DO NOT just describe it — propose concrete actions. First write a one-sentence plain summary of what you'll do, then append a fenced code block ```actions containing a JSON object {\"actions\":[...]}. Never mention the JSON block in your prose. The user must approve before anything is applied.\nEach deal has a stable [id:...] and each group a [group:...] in the board data. Action shapes:\n- {\"type\":\"set_field\",\"dealId\":\"<id>\",\"field\":\"status|agent|deal|date|vol|lender|appraisal|appraiser|instructed|broker|compliance|notes|name\",\"value\":<string, number, or array for lender>}\n- {\"type\":\"bulk_set_field\",\"dealIds\":[\"<id>\",\"<id>\",...],\"field\":\"<same fields as set_field>\",\"value\":<value>} — apply ONE field/value to MANY deals at once. Use this for bulk requests like \"mark all submitted deals as approved\" or \"set every deal closing this month to In Progress\". Resolve the matching deals yourself from the board data and list their [id]s.\n- {\"type\":\"set_condition\",\"dealId\":\"<id>\",\"condName\":\"<condition/document name>\",\"cond\":\"<status>\",\"date\":\"YYYY-MM-DD\",\"details\":\"<text>\"} (cond/date/details all optional)\n- {\"type\":\"add_condition\",\"dealId\":\"<id>\",\"name\":\"<name>\",\"cond\":\"<status>\"}\n- {\"type\":\"request_conditions\",\"dealId\":\"<id>\",\"conditions\":[\"<document/condition name>\",...]} — use when asked to request conditions/documents from the client or lender (e.g. \"request income docs and a void cheque\"). Adds each as a new condition row set to \"Requested\" and logs it. Pass \"dealIds\":[...] to request the same set across several deals.\n- {\"type\":\"move_deal\",\"dealId\":\"<id>\",\"group\":\"<group id or title>\"}\n- {\"type\":\"add_deal\",\"group\":\"<group id or title>\",\"name\":\"Last, First\",\"deal\":\"Purch|Refi|Switch|...\",\"agent\":\"<name>\",\"lender\":\"<name>\",\"vol\":<number>,\"date\":\"YYYY-MM-DD\",\"status\":\"<status>\"}\n- {\"type\":\"post_update\",\"dealId\":\"<id>\",\"text\":\"<message to post to the deal conversation>\"}\n- {\"type\":\"order_appraisal\",\"dealId\":\"<id>\",\"appraiser\":\"<optional appraiser/AMC name, e.g. RPS, AVM, Solidifi>\",\"date\":\"<optional YYYY-MM-DD due date>\"} — use when asked to order/request an appraisal. Sets the Appraisal column to \"Ordered\", records the appraiser, and logs it. For several deals pass \"dealIds\":[...] instead of dealId.\n- {\"type\":\"send_client_update\",\"dealId\":\"<id>\",\"subject\":\"<email subject>\",\"body\":\"<full email body, warm and professional, signed off as their mortgage broker>\",\"email\":\"<optional; defaults to the deal's email on file>\"} — use when asked to email, update, or notify the CLIENT/borrower. Always draft the full body yourself from the deal data (status, close date, outstanding conditions) and propose the action; do NOT refuse or ask just because no email is on file — omit the email field and the user will confirm the address on approval. Do not invent facts or figures not present in the data.\n- {\"type\":\"set_note\",\"dealId\":\"<id>\",\"text\":\"<notes text>\"}\nUse dates in YYYY-MM-DD. Resolve deals the user names to their [id]. If a request is ambiguous or you can't find the deal, ask instead of guessing. For questions or analysis with no change requested, answer normally with no actions block. " + enums;
+      const system = "You are an assistant embedded in a mortgage brokerage deal-pipeline board. You are in an ongoing chat — you may reference earlier turns. Be concise and concrete, use ONLY the data provided, and never invent facts. Format with light markdown: bold labels and short bullet points. Deal statuses/conditions come from the board's own columns." + actionDoc;
+      const convo = prior.map(m => ({ role: m.role, content: m.api || m.content })).concat([{ role: "user", content: prompt }]);
+      const text = await window.claude.complete({ system, max_tokens: 1600, messages: convo });
+      const cur = this.state.ai || {};
+      // Extract a ```actions or ```json fenced block containing {"actions":[...]}
+      let display = (text || "").trim(), actions = null;
+      const m = display.match(/```(?:actions|json)?\s*([\s\S]*?)```/i);
+      if (m) {
+        try { const parsed = JSON.parse(m[1].trim()); const arr = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.actions) ? parsed.actions : null); if (arr && arr.length) actions = arr; } catch (e) { }
+        display = display.replace(m[0], "").trim();
+      }
+      display = display.replace(/\s*\[id:[^\]]+\]/g, "").replace(/\s*\[group:[^\]]+\]/g, "").trim();
+      if (!display && actions) display = "Here's what I'll do:";
+      const outMsgs = (cur.msgs || []).concat([{ role: "assistant", content: display, actions: actions, applied: null }]);
+      this.setState({ ai: Object.assign({}, cur, { loading: false, msgs: outMsgs, error: null }) });
+    } catch (e) {
+      const cur = this.state.ai || {};
+      this.setState({ ai: Object.assign({}, cur, { loading: false, error: e.message || String(e) }) });
+    }
+  }
+  async smartCompose(kind) {
+    const ed = this._ta; if (!ed) return;
+    const isBoard = this.state.chat === "__board__";
+    const cf = isBoard ? { it: this.state.board } : this.find(this.state.chat);
+    if (!cf) return;
+    const ctx = isBoard ? this.boardSnapshot() : this.dealSnapshot(cf.it);
+    this.setState({ aiCompose: "loading", composeMenu: false });
+    try {
+      if (!(window.claude && window.claude.complete)) throw new Error("no ai");
+      let prompt;
+      if (kind === "draft") prompt = "Context:\n" + ctx + "\n\nDraft a short, professional deal update (2-4 sentences) I can post to my team about where this stands right now. Plain text only, no preamble.";
+      else { const curTxt = ed.textContent.trim(); if (!curTxt) { this.setState({ aiCompose: null }); return; } prompt = "Rewrite this deal update to be clear, professional and concise. Return only the rewritten text, no preamble:\n\n" + curTxt; }
+      const text = await window.claude.complete({ max_tokens: 600, messages: [{ role: "user", content: prompt }] });
+      ed.innerText = (text || "").trim();
+      this.setState({ aiCompose: null });
+    } catch (e) { this.setState({ aiCompose: "err" }); setTimeout(() => this.setState({ aiCompose: null }), 2600); }
+  }
+  mdLite(t) {
+    if (!t) return "";
+    let h = String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    h = h.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`(.+?)`/g, "<code style=\"font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--s3);border-radius:4px;padding:0 4px\">$1</code>");
+    const lines = h.split("\n"); const out = []; let inList = false;
+    const closeList = () => { if (inList) { out.push("</ul>"); inList = false; } };
+    for (const ln of lines) {
+      if (/^\s*#{1,6}\s+/.test(ln)) { closeList(); out.push("<div style='font-weight:700;margin:12px 0 4px;color:var(--tx)'>" + ln.replace(/^\s*#{1,6}\s+/, "") + "</div>"); }
+      else if (/^\s*[-*•]\s+/.test(ln) || /^\s*\d+\.\s+/.test(ln)) { if (!inList) { out.push("<ul style='margin:4px 0;padding-left:20px'>"); inList = true; } out.push("<li style='margin:3px 0'>" + ln.replace(/^\s*(?:[-*•]|\d+\.)\s+/, "") + "</li>"); }
+      else { closeList(); if (ln.trim() === "") out.push("<div style='height:7px'></div>"); else out.push("<div>" + ln + "</div>"); }
+    }
+    closeList();
+    return out.join("");
+  }
+  fmtMoney(n) {
+    if (n === null || n === undefined || n === "" || isNaN(n)) return "";
+    const cur = this.props.currency ?? "$";
+    return cur + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
+  }
+  fee(it) {
+    const L = it.lender || [];
+    let rate = null;
+    if (L.includes("MCAP")) rate = 0.011; else if (L.includes("RFA")) rate = 0.0125; else if (L.includes("Scotia")) rate = 0.011;
+    if (rate === null || !it.vol) return null;
+    return it.vol * rate;
+  }
+  newId(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  initials(name) { const p = (name || "?").trim().split(/\s+/); return ((p[0]||"?")[0] + (p.length>1 ? p[p.length-1][0] : "")).toUpperCase(); }
+  avatarColor(name) { const pal = ["#0073ea","#00c875","#a25ddc","#e2445c","#fdab3d","#579bfc","#037f4c","#ff642e"]; let h=0; for (const c of (name||"?")) h=(h*31+c.charCodeAt(0))>>>0; return pal[h%pal.length]; }
+  timeAgo(ts) {
+    const d = Date.now() - ts, m = Math.floor(d/60000), h = Math.floor(d/3600000), dy = Math.floor(d/86400000);
+    if (m < 1) return "just now"; if (m < 60) return m + "m ago"; if (h < 24) return h + "h ago"; if (dy < 7) return dy + "d ago";
+    return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+  saveAgents(list) {
+    this.seed.labels.agent = list;
+    this.seed.dropdowns.agent = list.map(a => a[0]);
+    try { localStorage.setItem(LS_AGENTS, JSON.stringify(list)); } catch (e) { }
+    this.forceUpdate();
+  }
+  people() {
+    const set = new Set(["You"]);
+    const dd = this.seed.dropdowns || {};
+    (dd.agent || []).forEach(n => set.add(n));
+    (dd.appraiser || []).forEach(n => set.add(n));
+    return [...set];
+  }
+  renderBody(text) {
+    const names = this.people();
+    const FMT = [
+      [/^\*\*([\s\S]+)\*\*$/, { fontWeight: 700 }],
+      [/^_([\s\S]+)_$/, { fontStyle: "italic" }],
+      [/^~([\s\S]+)~$/, { textDecoration: "line-through" }],
+      [/^`([\s\S]+)`$/, { fontFamily: "ui-monospace,Menlo,monospace", fontSize: "12px", background: "var(--s3)", border: "1px solid var(--bd)", borderRadius: "4px", padding: "0 4px" }]
+    ];
+    const mentionize = (seg, key) => {
+      const parts = String(seg).split(/(@[A-Za-z][\w'.,() -]*)/g);
+      return parts.map((s, i) => {
+        if (s[0] === "@") {
+          const hit = names.find(n => s.slice(1).toLowerCase().startsWith(n.toLowerCase()) && n.length > 1);
+          if (hit) return React.createElement("span", { key: key + "-" + i, style: { color: "#0073ea", fontWeight: 600, background: "#e0ecfb", borderRadius: "4px", padding: "0 3px" } }, "@" + hit);
+        }
+        return s;
+      });
+    };
+    const chunks = String(text).split(/(\*\*[^*]+\*\*|_[^_]+_|~[^~]+~|`[^`]+`)/g);
+    const out = [];
+    chunks.forEach((c, i) => {
+      for (const [re, style] of FMT) {
+        const m = c.match(re);
+        if (m) { out.push(React.createElement("span", { key: "f" + i, style }, mentionize(m[1], "f" + i))); return; }
+      }
+      out.push(...mentionize(c, "c" + i));
+    });
+    return out;
+  }
+  applyFormat(mark) {
+    const ta = this._ta; if (!ta) return;
+    const v = this.state.draft || "";
+    const s = ta.selectionStart ?? v.length, e = ta.selectionEnd ?? v.length;
+    const sel = v.slice(s, e) || "text";
+    const next = v.slice(0, s) + mark + sel + mark + v.slice(e);
+    this.setState({ draft: next });
+    requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(s + mark.length, s + mark.length + sel.length); });
+  }
+  fmtSize(b) { return b < 1024 ? b + " B" : b < 1048576 ? (b / 1024).toFixed(1) + " KB" : (b / 1048576).toFixed(1) + " MB"; }
+  sanitizeHtml(html) {
+    const ALLOW = { B: 1, STRONG: 1, I: 1, EM: 1, S: 1, STRIKE: 1, U: 1, CODE: 1, UL: 1, OL: 1, LI: 1, DIV: 1, P: 1, BR: 1, SPAN: 1, FONT: 1 };
+    const t = document.createElement("template");
+    t.innerHTML = html;
+    const walk = node => {
+      [...node.childNodes].forEach(ch => {
+        if (ch.nodeType === 3) return;
+        if (ch.nodeType !== 1 || !ALLOW[ch.tagName]) { ch.replaceWith(...ch.childNodes ? (walk(ch), [...ch.childNodes]) : []); return; }
+        const keep = {};
+        if (ch.tagName === "FONT") { if (ch.getAttribute("face")) keep.face = ch.getAttribute("face"); if (ch.getAttribute("color")) keep.color = ch.getAttribute("color"); }
+        const st = ch.getAttribute("style") || "";
+        const m = st.match(/(?:^|;)\s*(font-family|color|background|border|border-radius|padding|font-weight|font-style|text-decoration|font-size)\s*:[^;]+/gi);
+        [...ch.attributes].forEach(a => ch.removeAttribute(a.name));
+        Object.keys(keep).forEach(k => ch.setAttribute(k, keep[k]));
+        if (m) ch.setAttribute("style", m.join(";"));
+        walk(ch);
+      });
+    };
+    walk(t.content);
+    return t.innerHTML;
+  }
+  exec(cmd, val) {
+    const ed = this._ta; if (!ed) return;
+    ed.focus();
+    try { document.execCommand("styleWithCSS", false, cmd === "fontName" || cmd === "foreColor"); } catch (e) { }
+    document.execCommand(cmd, false, val || null);
+    this.forceUpdate();
+  }
+  mentionCtx() {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !this._ta || !this._ta.contains(sel.anchorNode)) return null;
+    const n = sel.anchorNode;
+    if (n.nodeType !== 3) return null;
+    const up = n.textContent.slice(0, sel.anchorOffset);
+    const m = up.match(/@([A-Za-z]*)$/);
+    return m ? { node: n, end: sel.anchorOffset, len: m[0].length, q: m[1] } : null;
+  }
+  insertMention(name) {
+    const ctx = this.mentionCtx(); const ed = this._ta; if (!ed) return;
+    if (ctx) {
+      const r = document.createRange();
+      r.setStart(ctx.node, ctx.end - ctx.len); r.setEnd(ctx.node, ctx.end);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    }
+    ed.focus();
+    document.execCommand("insertHTML", false, '<span style="color:#0073ea;font-weight:600;background:#e0ecfb;border-radius:4px;padding:0 3px">@' + name + '</span>&nbsp;');
+    this.setState({ mentionQ: null });
+  }
+  readFiles(fileList) {
+    const files = [...fileList].slice(0, 5);
+    Promise.all(files.map(f => new Promise(res => {
+      if (f.size > 400000) return res({ name: f.name, size: f.size, data: null });
+      const r = new FileReader();
+      r.onload = () => res({ name: f.name, size: f.size, data: r.result });
+      r.onerror = () => res({ name: f.name, size: f.size, data: null });
+      r.readAsDataURL(f);
+    }))).then(read => this.setState({ pendingFiles: this.state.pendingFiles.concat(read) }));
+  }
+  applyList(kind) {
+    const ta = this._ta; if (!ta) return;
+    const v = this.state.draft || "";
+    const s = ta.selectionStart ?? v.length, e = ta.selectionEnd ?? v.length;
+    const ls = v.lastIndexOf("\n", s - 1) + 1;
+    let le = v.indexOf("\n", e); if (le === -1) le = v.length;
+    const block = v.slice(ls, le);
+    const lines = (block || "List item").split("\n");
+    const out = lines.map((ln, i) => (kind === "num" ? (i + 1) + ". " : "• ") + ln.replace(/^(•|\d+\.)\s+/, "")).join("\n");
+    const next = v.slice(0, ls) + out + v.slice(le);
+    this.setState({ draft: next });
+    requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(ls, ls + out.length); });
+  }
+  addItem(gid, name) {
+    this.mut(b => {
+      const g = b.groups.find(x => x.id === gid); if (!g || !name.trim()) return;
+      g.items.push({ id: this.newId("i"), name: name.trim(), agent: null, deal: null, date: null, lender: [], vol: null, status: null, appraisal: null, appraiser: null, instructed: null, broker: null, compliance: null, notes: null, email: null, subs: [] });
+    });
+  }
+  renderVals() {
+    const st = this.state, seed = this.seed;
+    if (!st.board || !seed) {
+      return { loading: true, vgroups: [], boardName: "CAYMUS '25 (Anthony)", boardDesc: "CAYMUS MORTGAGE CAPITAL", boards: [], stopProp: () => {}, confirm: { show: false, title: "", msg: "", label: "", btnBg: "#0073ea", showConfirm: true, onCancel: () => {}, onConfirm: () => {} }, autosOpen: false, onAutosOpen: () => {}, onAutosClose: () => {}, autosList: [], trashOpen: false, trashCount: 0, hasTrash: false, noTrash: true, onTrashOpen: () => {}, onTrashClose: () => {}, onTrashEmpty: () => {}, trashItems: [], filterOpen: false, filterActive: false, filterLabel: "Filter", filterColor: "var(--tx2)", filterBorder: "var(--bd3)", onFilterOpen: () => {}, onFilterClose: () => {}, onFilterClear: () => {}, filterAgents: [], filterLenders: [], notifOpen: false, notifCount: 0, hasNotifs: false, noNotifs: true, notifBellColor: "var(--tx2)", onNotifOpen: () => {}, onNotifClose: () => {}, notifs: [], search: "", collapseLabel: "Collapse all", pop: { show: false, x: 0, y: 0, blocks: [], rows: [] }, chat: { show: false, title: "", empty: true, msgs: [], draft: "", onClose: () => {}, onDraft: () => {}, onSend: () => {}, onKey: () => {} }, boardHasChat: false, boardChatCount: 0, boardChatColor: "var(--tx2)", onBoardChat: () => {}, undoDisabled: true, undoColor: "#c5c7d0", undoCursor: "default", onUndo: () => {}, gridCols: DEF_COLS.map(w=>w+"px").join(" "), columns: [], onSearch: () => { }, onNewDeal: () => { }, onReset: () => { }, onCollapseAll: () => { }, onClosePop: () => { }, onCloseEdits: () => { }, onEnterBlur: () => { }, dark: false, light: true, themeClass: "", onThemeToggle: () => {}, themeTitle: "Toggle theme" };
+    }
+    const searchSubs = this.props.searchSubitems ?? true;
+    const notifMap = {}; (st.notifs || []).forEach(n => { if (n.dealId) (notifMap[n.dealId] = notifMap[n.dealId] || []).push(n.msg); });
+    const ord = (st.colOrder && st.colOrder.length === COL_META.length) ? st.colOrder : COL_META.map((_, i) => i);
+    const gridCols = ord.map(i => st.colWidths[i] + "px").join(" ");
+    const co = {}; COL_META.forEach((_, i) => { co["c" + i] = ord.indexOf(i); });
+    const volCol = ord.indexOf(6) + 1;
+    const columns = COL_META.map((c, i) => Object.assign({}, c, {
+      ord: ord.indexOf(i),
+      dropMark: st.dragColOver === i && st.dragColIdx !== i ? "#0073ea" : "transparent",
+      onColDragStart: e => { e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", "col:" + i); } catch (er) { } this.setState({ dragColIdx: i }); },
+      onColDragOver: e => { if (st.dragColIdx !== null && st.dragColIdx !== undefined) { e.preventDefault(); e.stopPropagation(); if (st.dragColOver !== i) this.setState({ dragColOver: i }); } },
+      onColDrop: e => {
+        e.preventDefault(); e.stopPropagation();
+        const from = st.dragColIdx; this.setState({ dragColIdx: null, dragColOver: null });
+        if (from === null || from === undefined || from === i) return;
+        this.pushUndo();
+        const o = ord.slice(); o.splice(o.indexOf(from), 1); o.splice(o.indexOf(i), 0, from);
+        try { localStorage.setItem(LS_COLORDER, JSON.stringify(o)); } catch (er) { }
+        this.setState({ colOrder: o, canUndo: true });
+      },
+      onColDragEnd: () => this.setState({ dragColIdx: null, dragColOver: null }),
+      onResize: e => this.resizeStart(i, e),
+      arrow: st.sort && st.sort.col === i ? (st.sort.dir === 1 ? "\u25b2" : "\u25bc") : "",
+      onSort: () => this.setState({ sort: st.sort && st.sort.col === i ? (st.sort.dir === 1 ? { col: i, dir: -1 } : null) : { col: i, dir: 1 } })
+    }));
+    const boardsList = (st.boards || []).map(b => {
+      const active = b.id === st.activeBoard, editing = st.renameBoard === b.id;
+      return {
+        id: b.id, name: b.name, editing, notEditing: !editing,
+        bg: active ? "#e0ecfb" : "transparent", hoverBg: active ? "#e0ecfb" : "var(--bd2)",
+        color: active ? "#0060b9" : "var(--tx2)", weight: active ? 600 : 400,
+        dot: active ? "#0060b9" : "#b9bcc9",
+        onSelect: () => { if (!editing) this.setState({ activeBoard: b.id }); },
+        draggable: !editing,
+        dragOpacity: st.dragBoard === b.id ? 0.4 : 1,
+        dropShadow: st.dragOverBoard === b.id && st.dragBoard !== b.id ? "inset 0 2px 0 #0073ea" : "none",
+        onDragStart: e => { this.setState({ dragBoard: b.id }); try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", b.id); } catch (er) { } },
+        onDragOver: e => { e.preventDefault(); try { e.dataTransfer.dropEffect = "move"; } catch (er) { } if (st.dragOverBoard !== b.id) this.setState({ dragOverBoard: b.id }); },
+        onDrop: e => {
+          e.preventDefault();
+          const from = st.dragBoard;
+          if (!from || from === b.id) { this.setState({ dragBoard: null, dragOverBoard: null }); return; }
+          this.pushUndo();
+          const arr = st.boards.slice();
+          const fi = arr.findIndex(x => x.id === from), ti = arr.findIndex(x => x.id === b.id);
+          if (fi < 0 || ti < 0) { this.setState({ dragBoard: null, dragOverBoard: null }); return; }
+          const [moved] = arr.splice(fi, 1);
+          arr.splice(arr.findIndex(x => x.id === b.id), 0, moved);
+          try { localStorage.setItem(LS_BOARDS, JSON.stringify(arr)); } catch (er) { }
+          this.setState({ boards: arr, dragBoard: null, dragOverBoard: null, canUndo: true });
+        },
+        onDragEnd: () => this.setState({ dragBoard: null, dragOverBoard: null }),
+        onMenu: e => this.openPop(e, { type: "boardmenu", bid: b.id }),
+        onRename: e => { const v = e.target.value.trim(); const arr = st.boards.map(x => x.id === b.id ? Object.assign({}, x, { name: v || x.name }) : x); this.setState({ boards: arr, renameBoard: null }); try { localStorage.setItem(LS_BOARDS, JSON.stringify(arr)); } catch (er) { } }
+      };
+    });
+    const activeBoardName = (st.boards || []).find(b => b.id === st.activeBoard);
+    let confirm = { show: false, title: "", msg: "", label: "", btnBg: "#0073ea", showConfirm: true, onCancel: () => { }, onConfirm: () => { } };
+    if (st.confirm && st.confirm.type === "delItem") {
+      const g = (st.board.groups || []).find(x => x.id === st.confirm.gid);
+      const target = g && (g.items || []).find(x => x.id === st.confirm.iid);
+      confirm = {
+        show: true, title: "Delete this deal?",
+        msg: target ? '"' + target.name + '" and its subitems, updates, and files will be removed. You can undo this.' : "",
+        label: "Delete", btnBg: "#df2f4a", showConfirm: !!target,
+        onCancel: () => this.setState({ confirm: null }),
+        onConfirm: () => {
+          const gg0 = (st.board.groups || []).find(x => x.id === st.confirm.gid);
+          const item0 = gg0 && (gg0.items || []).find(x => x.id === st.confirm.iid);
+          if (item0) this.toTrash({ kind: "deal", name: item0.name, gid: st.confirm.gid, gtitle: gg0.title, idx: gg0.items.indexOf(item0), data: JSON.parse(JSON.stringify(item0)) });
+          this.mut(b => { const gg = b.groups.find(x => x.id === st.confirm.gid); if (gg) gg.items = gg.items.filter(x => x.id !== st.confirm.iid); });
+          this.setState({ confirm: null });
+        }
+      };
+    } else if (st.confirm && st.confirm.type === "clearAllNotif") {
+      confirm = {
+        show: true, title: "Clear all notifications?",
+        msg: "This will clear every notification. This can't be undone.",
+        label: "Clear all", btnBg: "#df2f4a", showConfirm: true,
+        onCancel: () => this.setState({ confirm: null }),
+        onConfirm: () => {
+          const keys = (st.notifs || []).map(n => n.key);
+          let dis = []; try { dis = JSON.parse(localStorage.getItem(LS_NOTIF_DIS) || "[]"); } catch (e2) { }
+          keys.forEach(k => { if (!dis.includes(k)) dis.push(k); });
+          try { localStorage.setItem(LS_NOTIF_DIS, JSON.stringify(dis.slice(-500))); } catch (e2) { }
+          this.setState({ notifs: [], confirm: null });
+        }
+      };
+    } else if (st.confirm && st.confirm.type === "clearNotif") {
+      const hit = this.find(st.confirm.iid);
+      const nm = hit && hit.it ? hit.it.name : "";
+      confirm = {
+        show: true, title: "Clear notification?",
+        msg: nm ? 'This will clear all notifications on "' + nm + '". This can\'t be undone.' : "This will clear all notifications on this deal.",
+        label: "Clear", btnBg: "#df2f4a", showConfirm: true,
+        onCancel: () => this.setState({ confirm: null }),
+        onConfirm: () => {
+          const iid = st.confirm.iid;
+          const keys = (st.notifs || []).filter(n => n.dealId === iid).map(n => n.key);
+          let dis = []; try { dis = JSON.parse(localStorage.getItem(LS_NOTIF_DIS) || "[]"); } catch (e2) { }
+          keys.forEach(k => { if (!dis.includes(k)) dis.push(k); });
+          try { localStorage.setItem(LS_NOTIF_DIS, JSON.stringify(dis.slice(-500))); } catch (e2) { }
+          this.setState({ notifs: (st.notifs || []).filter(n => n.dealId !== iid), confirm: null });
+        }
+      };
+    } else if (st.confirm) {
+      const target = (st.boards || []).find(b => b.id === st.confirm.bid);
+      const isDel = st.confirm.type === "del";
+      const cantDel = isDel && st.boards.length <= 1;
+      confirm = {
+        show: true,
+        title: isDel ? "Delete this board?" : "Duplicate this board?",
+        msg: cantDel ? "You can't delete the last remaining board." : (target ? (isDel ? '"' + target.name + '" will be removed from the board list. You can undo this.' : 'A copy of "' + target.name + '" will be added below it.') : ""),
+        label: isDel ? "Delete" : "Duplicate",
+        btnBg: isDel ? "#df2f4a" : "#0073ea",
+        showConfirm: !cantDel && !!target,
+        onCancel: () => this.setState({ confirm: null }),
+        onConfirm: () => {
+          if (cantDel || !target) { this.setState({ confirm: null }); return; }
+          this.pushUndo();
+          const arr = st.boards.slice();
+          const idx = arr.findIndex(x => x.id === st.confirm.bid);
+          let active = st.activeBoard;
+          if (isDel) { arr.splice(idx, 1); if (active === st.confirm.bid) active = arr[0].id; this.toTrash({ kind: "board", name: target.name, data: JSON.parse(JSON.stringify(target)) }); }
+          else arr.splice(idx + 1, 0, { id: "b" + Date.now().toString(36), name: target.name + " (copy)" });
+          try { localStorage.setItem(LS_BOARDS, JSON.stringify(arr)); } catch (er) { }
+          this.setState({ boards: arr, activeBoard: active, confirm: null, canUndo: true });
+        }
+      };
+    }
+    const q = st.search.trim().toLowerCase();
+    const soft = hex => hex + "99";
+    const labelCell = (val, kind) => ({ label: val || "", color: val ? this.colorOf(kind, val) : "var(--empty)" });
+    const popLabel = (e, id, subId, field, kind) => this.openPop(e, { type: "label", id, subId, field, kind });
+    const popDrop = (e, id, field, kind, multi) => this.openPop(e, { type: "drop", id, field, kind, multi });
+
+    const vgroups = st.board.groups.map(g => {
+      const open = !st.collapsed[g.id] || !!q;
+      let items = g.items;
+      if (q) items = items.filter(it => {
+        const hay = [it.name, it.agent, it.deal, (it.lender || []).join(" "), it.status, it.appraisal, it.appraiser, it.notes, it.email, it.date].filter(Boolean).join(" ").toLowerCase();
+        return hay.includes(q) || (searchSubs && it.subs.some(s => s.name.toLowerCase().includes(q)));
+      });
+      if (st.filterAgent) items = items.filter(it => it.agent === st.filterAgent);
+      if (st.filterLender) items = items.filter(it => (it.lender || []).includes(st.filterLender));
+      if (st.sort) {
+        const kf = this.sortKey(st.sort.col);
+        items = items.slice().sort((x, y) => {
+          const av = kf(x), bv = kf(y);
+          if (av === bv) return 0;
+          if (av === "" || av === null || av === undefined) return 1;
+          if (bv === "" || bv === null || bv === undefined) return -1;
+          return (av < bv ? -1 : 1) * st.sort.dir;
+        });
+      }
+      const volSum = g.items.reduce((a, it) => a + (Number(it.vol) || 0), 0);
+      const feeSum = g.items.reduce((a, it) => a + (this.fee(it) || 0), 0);
+      return {
+        id: g.id, title: g.title, color: g.color, colorSoft: soft(g.color), open, count: items.length,
+        dropOutline: st.dragOverGroup === g.id ? "2px dashed #0073ea" : "none",
+        dropBg: st.dragOverGroup === g.id ? "#eef5fd" : "transparent",
+        onDragOver: e => { if (st.dragItem) { e.preventDefault(); if (st.dragOverGroup !== g.id) this.setState({ dragOverGroup: g.id, dragOverRow: null }); } },
+        onDragLeave: e => { if (st.dragOverGroup === g.id && !e.currentTarget.contains(e.relatedTarget)) this.setState({ dragOverGroup: null }); },
+        onDrop: e => {
+          e.preventDefault();
+          const iid = st.dragItem; this.setState({ dragItem: null, dragOverGroup: null, dragOverRow: null });
+          if (!iid) return;
+          this.mut(b => {
+            const from = b.groups.find(x => (x.items || []).some(i => i.id === iid));
+            const to = b.groups.find(x => x.id === g.id);
+            if (!from || !to || from.id === to.id) return;
+            const it = from.items.find(i => i.id === iid);
+            from.items = from.items.filter(i => i.id !== iid);
+            to.items.push(it);
+            b.acts = (b.acts || []).concat([{ id: this.newId("a"), ts: Date.now(), itemId: it.id, msg: 'moved deal from "' + from.title + '" to "' + to.title + '"' }]);
+          });
+        },
+        rot: open ? 90 : 0,
+        countText: g.items.length === 1 ? "1 item" : g.items.length + " items",
+        volSum: volSum ? this.fmtMoney(volSum) : "–",
+        feeSum: feeSum ? this.fmtMoney(Math.round(feeSum)) : "–",
+        onToggle: () => { const c = Object.assign({}, st.collapsed, { [g.id]: open }); this.saveCollapsed(c); this.setState({ collapsed: c }); },
+        onAddItem: e => { if (e.key === "Enter" && e.target.value.trim()) { this.addItem(g.id, e.target.value); e.target.value = ""; } },
+        items: items.map(it => {
+          const status = labelCell(it.status, "status"), appr = labelCell(it.appraisal, "appraisal"),
+            inst = labelCell(it.instructed, "instructed"), brok = labelCell(it.broker, "broker"), comp = labelCell(it.compliance, "compliance");
+          const expanded = !!st.expanded[it.id];
+          let prog = 0;
+          if (it.status === "Approved") prog += 25;
+          if (["Complete", "Audit Done", "Audit Req'd"].includes(it.broker)) prog += 25;
+          if (it.appraisal === "Completed") prog += 25;
+          if (it.instructed === "YES") prog += 25;
+          const feeV = this.fee(it);
+          const volEditing = !!(st.edit && st.edit.id === it.id && st.edit.field === "vol");
+          return {
+            onDragStart: e => { e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", it.id); } catch (er) { } this.setState({ dragItem: it.id }); },
+            onDragEnd: () => this.setState({ dragItem: null, dragOverGroup: null, dragOverRow: null }),
+            dragOpacity: st.dragItem === it.id ? 0.4 : 1,
+            dropLine: st.dragOverRow === it.id && st.dragItem !== it.id ? "#0073ea" : "transparent",
+            onRowDragOver: e => { if (st.dragItem && st.dragItem !== it.id) { e.preventDefault(); e.stopPropagation(); if (st.dragOverRow !== it.id) this.setState({ dragOverRow: it.id, dragOverGroup: null }); } },
+            onRowDrop: e => {
+              e.preventDefault(); e.stopPropagation();
+              const iid = st.dragItem; this.setState({ dragItem: null, dragOverGroup: null, dragOverRow: null });
+              if (!iid || iid === it.id) return;
+              this.mut(b => {
+                const from = b.groups.find(x => (x.items || []).some(i => i.id === iid));
+                const to = b.groups.find(x => (x.items || []).some(i => i.id === it.id));
+                if (!from || !to) return;
+                const moved = from.items.find(i => i.id === iid);
+                from.items = from.items.filter(i => i.id !== iid);
+                const idx = to.items.findIndex(i => i.id === it.id);
+                to.items.splice(idx, 0, moved);
+                if (from.id !== to.id) b.acts = (b.acts || []).concat([{ id: this.newId("a"), ts: Date.now(), itemId: moved.id, msg: 'moved deal from "' + from.title + '" to "' + to.title + '"' }]);
+              });
+            },
+            id: it.id, name: it.name, notes: it.notes || "", email: it.email || "",
+            noteStatus: this.cellNoteList(it, "status").length > 0, noteStatusText: (this.cellNoteList(it, "status").slice(-1)[0] || {}).text || "",
+            noteAppraisal: this.cellNoteList(it, "appraisal").length > 0, noteAppraisalText: (this.cellNoteList(it, "appraisal").slice(-1)[0] || {}).text || "",
+            noteInstructed: this.cellNoteList(it, "instructed").length > 0, noteInstructedText: (this.cellNoteList(it, "instructed").slice(-1)[0] || {}).text || "",
+            subCount: it.subs.length, expanded, rot: expanded ? 90 : 0,
+            hasNotif: !!notifMap[it.id], notifTitle: (notifMap[it.id] || []).join("\n"), notifList: (notifMap[it.id] || []),
+            onClearNotif: e => { e.stopPropagation(); this.setState({ confirm: { type: "clearNotif", iid: it.id } }); },
+            hasChat: (it.chat || []).length > 0, chatCount: (it.chat || []).length,
+            chatColor: (it.chat || []).length > 0 ? "#0073ea" : "var(--tx3)",
+            onChat: e => { e.stopPropagation(); this.setState({ chat: it.id, draft: "" }); },
+            agentText: it.agent || "", hasAgent: !!it.agent, agentColor: it.agent ? this.colorOf("agent", it.agent) : "var(--empty)",
+            dealText: it.deal || "", lenderText: (it.lender || []).join(", "),
+            dateVal: it.date || "",
+            volText: this.fmtMoney(it.vol), volRaw: it.vol === null || it.vol === undefined ? "" : String(it.vol),
+            volEditing, volNotEditing: !volEditing,
+            statusLabel: status.label, statusColor: status.color,
+            appraisalLabel: appr.label, appraisalColor: appr.color,
+            appraiserText: it.appraiser || "",
+            instructedLabel: inst.label, instructedColor: inst.color,
+            brokerLabel: brok.label, brokerColor: brok.color,
+            complianceLabel: comp.label, complianceColor: comp.color,
+            progressPct: prog, progressTitle: prog + "%",
+            condSegs: (seed.labels.cond || []).map(([nm, c]) => ({ name: nm, color: c, n: (it.subs || []).filter(s => s.cond === nm).length })).filter(x => x.n > 0),
+            condTitle: (it.subs || []).length ? (seed.labels.cond || []).map(([nm]) => { const n = (it.subs || []).filter(s => s.cond === nm).length; return n ? nm + ": " + n : null; }).filter(Boolean).join(" · ") : "No conditions",
+            formulaText: feeV ? this.fmtMoney(Math.round(feeV * 100) / 100) : "–",
+            onExpand: () => this.setState({ expanded: Object.assign({}, st.expanded, { [it.id]: !expanded }) }),
+            onName: e => this.mut(() => { it.name = e.target.value; }),
+            onNotes: e => this.mut(() => { it.notes = e.target.value || null; }),
+            onEmail: e => this.mut(() => { it.email = e.target.value || null; }),
+            onDate: e => this.mut(() => { it.date = e.target.value || null; }),
+            onVolClick: e => { e.stopPropagation(); this.setState({ edit: { id: it.id, field: "vol" } }); },
+            onVolCommit: e => { const v = parseFloat(String(e.target.value).replace(/[^0-9.\-]/g, "")); this.mut(() => { it.vol = isNaN(v) ? null : v; }); this.setState({ edit: null }); },
+            onStatus: e => popLabel(e, it.id, null, "status", "status"),
+            onNoteStatus: e => this.openPop(e, { type: "cellnote", id: it.id, field: "status", kind: "status", orig: (it.cellNotes && it.cellNotes.status) || "" }),
+            onNoteAppraisal: e => this.openPop(e, { type: "cellnote", id: it.id, field: "appraisal", kind: "appraisal", orig: (it.cellNotes && it.cellNotes.appraisal) || "" }),
+            onNoteInstructed: e => this.openPop(e, { type: "cellnote", id: it.id, field: "instructed", kind: "instructed", orig: (it.cellNotes && it.cellNotes.instructed) || "" }),
+            onAppraisal: e => popLabel(e, it.id, null, "appraisal", "appraisal"),
+            onInstructed: e => popLabel(e, it.id, null, "instructed", "instructed"),
+            onBroker: e => popLabel(e, it.id, null, "broker", "broker"),
+            onCompliance: e => popLabel(e, it.id, null, "compliance", "compliance"),
+            onAgent: e => popLabel(e, it.id, null, "agent", "agent"),
+            onDeal: e => popDrop(e, it.id, "deal", "deal", false),
+            onLender: e => popDrop(e, it.id, "lender", "lender", true),
+            onAppraiser: e => popDrop(e, it.id, "appraiser", "appraiser", false),
+            onMenu: e => this.openPop(e, { type: "menu", id: it.id, gid: g.id }),
+            onAddSub: e => {
+              if (e.key === "Enter" && e.target.value.trim()) {
+                const v = e.target.value.trim(); e.target.value = "";
+                this.mut(() => { it.subs.push({ id: this.newId("s"), name: v, cond: "Requested", date: null, details: null }); });
+              }
+            },
+            subs: it.subs.map(s => ({
+              id: s.id, name: s.name, details: s.details || "", dateVal: s.date || "",
+              cond: s.cond || "", condColor: s.cond ? this.colorOf("cond", s.cond) : "var(--empty)",
+              onName: e => this.mut(() => { s.name = e.target.value; }),
+              onDetails: e => this.mut(() => { s.details = e.target.value || null; }),
+              onDate: e => this.mut(() => { s.date = e.target.value || null; }),
+              onCond: e => popLabel(e, it.id, s.id, "cond", "cond"),
+              onDelete: () => this.mut(() => { it.subs = it.subs.filter(x => x.id !== s.id); })
+            }))
+          };
+        })
+      };
+    });
+    const vgroupsShown = (q || st.filterAgent || st.filterLender) ? vgroups.filter(g => g.count > 0) : vgroups;
+
+    // popover view model
+    let pop = { show: false, x: 0, y: 0, blocks: [], rows: [], isNewDeal: false, newDealName: "", onNewDealName: () => { }, isAgent: false, newAgentName: "", onNewAgentName: () => { }, onAddAgent: () => { }, onAddAgentKey: () => { } };
+    const p = st.pop;
+    if (p) {
+      pop.show = true; pop.x = p.x; pop.y = p.y;
+      if (p.type === "newdeal") {
+        pop.isNewDeal = true;
+        pop.newDealName = st.newDealName || "";
+        pop.onNewDealName = e => { const v = e.target.value; this.setState({ newDealName: v, pop: p }); };
+        pop.rows = ["Purch", "Refi", "Refi-Maturity", "Switch", "HELOC"].concat((seed.dropdowns.deal || []).filter(o => !["Purch", "Refi", "Refi-Maturity", "Switch", "HELOC"].includes(o))).map(opt => ({
+          label: opt, color: "var(--tx)", check: "",
+          onClick: () => {
+            const name = (st.newDealName || "").trim() || "New deal";
+            const isPurch = /purch/i.test(opt);
+            const tplGroup = st.board.groups.find(g => /template/i.test(g.title)) || st.board.groups[0];
+            const tpl = (tplGroup.items || []).find(it => isPurch ? /purchase/i.test(it.name) : /refi/i.test(it.name));
+            const subs = tpl ? JSON.parse(JSON.stringify(tpl.subs || [])).map(s => { s.id = this.newId("s"); return s; }) : [];
+            if (/switch/i.test(opt)) ["Home Insurance Policy", "FCT Payout Authorization"].forEach(nm => {
+              if (!subs.some(s => s.name.toLowerCase() === nm.toLowerCase())) subs.push({ id: this.newId("s"), name: nm, cond: null, date: null, details: null });
+            });
+            this.mut(b => {
+              const g0 = b.groups.find(g => !/template/i.test(g.title)) || b.groups[0];
+              g0.items.unshift({ id: this.newId("i"), name, agent: null, deal: opt, date: null, lender: [], vol: null, status: null, appraisal: null, appraiser: null, instructed: null, broker: null, compliance: null, notes: null, email: null, subs });
+            });
+            const tgt = st.board.groups.find(g => !/template/i.test(g.title)) || st.board.groups[0];
+            const c2 = Object.assign({}, st.collapsed, { [tgt.id]: false }); this.saveCollapsed(c2);
+            this.setState({ pop: null, newDealName: "", collapsed: c2 });
+          }
+        }));
+      } else if (p.type === "boardmenu") {
+        pop.rows = [
+          { label: "Rename", color: "var(--tx)", check: "", onClick: () => this.setState({ renameBoard: p.bid, pop: null }) },
+          { label: "Duplicate", color: "var(--tx)", check: "", onClick: () => this.setState({ pop: null, confirm: { type: "dup", bid: p.bid } }) },
+          { label: "Delete", color: "#df2f4a", check: "", onClick: () => this.setState({ pop: null, confirm: { type: "del", bid: p.bid } }) }
+        ];
+      } else {
+      const f = this.find(p.id);
+      if (f && p.type === "cellnote") {
+        const FL = { status: "Status", appraisal: "Appraisal", instructed: "Instructed" };
+        const label = FL[p.field] || "Cell";
+        const list = this.cellNoteList(f.it, p.field);
+        pop.isCellNote = true;
+        pop.noteTitle = label + " notes";
+        pop.hasNotes = list.length > 0;
+        pop.noNotes = list.length === 0;
+        pop.notes = list.map(n => ({ text: n.text, when: this.timeAgo(n.ts), onDelete: () => { this.mut(() => { f.it.cellNotes[p.field] = this.cellNoteList(f.it, p.field).filter(x => x.id !== n.id); }); this.setState({ pop: p }); } }));
+        pop.draft = st.cellNoteDraft || "";
+        pop.onDraft = e => this.setState({ cellNoteDraft: e.target.value, pop: p });
+        const add = () => {
+          const txt = (this.state.cellNoteDraft || "").trim();
+          if (!txt) return;
+          this.mut(() => {
+            if (!f.it.cellNotes) f.it.cellNotes = {};
+            f.it.cellNotes[p.field] = this.cellNoteList(f.it, p.field).concat([{ id: this.newId("cn"), text: txt, ts: Date.now() }]);
+            if (!f.it.chat) f.it.chat = [];
+            f.it.chat.push({ id: this.newId("m"), author: "You", text: "📝 " + label + " note: " + txt, ts: Date.now() });
+            this.state.board.acts = (this.state.board.acts || []).concat([{ id: this.newId("a"), ts: Date.now(), itemId: f.it.id, msg: label + " note added" }]);
+          });
+          this.setState({ cellNoteDraft: "", pop: p });
+        };
+        pop.onAddNote = add;
+        pop.onDraftKey = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); add(); } };
+        pop.onNoteDone = () => this.setState({ pop: null, cellNoteDraft: "" });
+      } else if (f && p.type === "label") {
+        const target = p.subId ? f.it.subs.find(s => s.id === p.subId) : f.it;
+        pop.blocks = seed.labels[p.kind].map(([l, c]) => ({
+          label: l, color: c, border: target && target[p.field] === l ? "var(--tx)" : "transparent",
+          onClick: () => { const wasCell = this._popEl; this.mut(() => { if (target) target[p.field] = l; }); if (/complete/i.test(l)) this.cellConfetti(wasCell); this.setState({ pop: null }); },
+          canDelete: p.kind === "agent",
+          onDeleteOpt: e => {
+            e.stopPropagation();
+            const list = (seed.labels.agent || []).filter(a => a[0] !== l);
+            this.saveAgents(list);
+            this.setState({ pop: p });
+          }
+        }));
+        if (p.kind === "agent") {
+          pop.isAgent = true;
+          pop.newAgentName = st.newAgentName || "";
+          pop.onNewAgentName = e => { this.setState({ newAgentName: e.target.value, pop: p }); };
+          pop.onAddAgent = () => {
+            const nm = (st.newAgentName || "").trim();
+            if (!nm || (seed.labels.agent || []).some(a => a[0].toLowerCase() === nm.toLowerCase())) return;
+            const palette = ["#fdab3d", "#00a9b5", "#df2f4a", "#66ccff", "#a25ddc", "#00c875", "#ff642e", "#7f5347"];
+            const used = (seed.labels.agent || []).map(a => a[1]);
+            const color = palette.find(c => !used.includes(c)) || palette[(seed.labels.agent || []).length % palette.length];
+            this.saveAgents((seed.labels.agent || []).concat([[nm, color]]));
+            this.setState({ newAgentName: "", pop: p });
+          };
+          pop.onAddAgentKey = e => { if (e.key === "Enter") pop.onAddAgent(); };
+        }
+        pop.rows = [{ label: "Clear", color: "var(--tx2)", check: "", onClick: () => { this.mut(() => { if (target) target[p.field] = null; }); this.setState({ pop: null }); } }];
+      } else if (f && p.type === "drop") {
+        const cur = f.it[p.field];
+        pop.rows = seed.dropdowns[p.kind].map(opt => {
+          const sel = p.multi ? (cur || []).includes(opt) : cur === opt;
+          return {
+            label: opt, color: "var(--tx)", check: sel ? "✓" : "",
+            onClick: () => {
+              this.mut(() => {
+                if (p.multi) {
+                  const arr = f.it[p.field] || [];
+                  f.it[p.field] = sel ? arr.filter(x => x !== opt) : arr.concat([opt]);
+                } else f.it[p.field] = sel ? null : opt;
+              });
+              if (!p.multi) this.setState({ pop: null });
+            }
+          };
+        });
+        pop.rows.push({ label: "Clear", color: "var(--tx2)", check: "", onClick: () => { this.mut(() => { f.it[p.field] = p.multi ? [] : null; }); this.setState({ pop: null }); } });
+      } else if (f && p.type === "menu") {
+        pop.rows = [
+          {
+            label: "✨ AI summary", color: "#7a3ff2", check: "", onClick: () => { this.setState({ pop: null, ai: { open: true, dealId: p.id } }); this.runAI("summary", { it: f.it, dealId: p.id }); }
+          },
+          {
+            label: "✨ Suggest next step", color: "#7a3ff2", check: "", onClick: () => { this.setState({ pop: null, ai: { open: true, dealId: p.id } }); this.runAI("next", { it: f.it, dealId: p.id }); }
+          },
+          {
+            label: "Duplicate deal", color: "var(--tx)", check: "", onClick: () => {
+              this.mut(b => {
+                const g = b.groups.find(x => x.id === p.gid);
+                const copy = JSON.parse(JSON.stringify(f.it));
+                copy.id = this.newId("i"); copy.name = copy.name + " (copy)";
+                copy.subs.forEach(s => { s.id = this.newId("s"); });
+                g.items.splice(g.items.indexOf(f.it) + 1, 0, copy);
+              });
+              this.setState({ pop: null });
+            }
+          },
+          {
+            label: "Delete deal", color: "#df2f4a", check: "", onClick: () => this.setState({ pop: null, confirm: { type: "delItem", gid: p.gid, iid: p.id } })
+          }
+        ];
+      }
+      }
+    }
+
+    // AI assistant view model
+    const aiS = st.ai || {};
+    const aiDeal = aiS.dealId ? this.find(aiS.dealId) : null;
+    const ai = {
+      open: !!aiS.open,
+      hasDeal: !!aiDeal,
+      dealName: aiDeal ? aiDeal.it.name : "",
+      question: aiS.question || "",
+      loading: !!aiS.loading,
+      hasError: !!aiS.error, error: aiS.error || "",
+      hasMsgs: !!(aiS.msgs && aiS.msgs.length),
+      transcript: React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "12px" } },
+        (aiS.msgs || []).map((m, i) => {
+          if (m.role === "user") return React.createElement("div", { key: i, style: { alignSelf: "flex-end", maxWidth: "85%", background: "linear-gradient(135deg,#7a3ff2,#6a2fe0)", color: "#fff", borderRadius: "13px 13px 3px 13px", padding: "9px 14px", fontSize: "13.5px", lineHeight: 1.5, whiteSpace: "pre-wrap" } }, m.content);
+          const parts = [React.createElement("div", { key: "b", style: { alignSelf: "flex-start", maxWidth: "92%", background: "#faf9ff", border: "1px solid #ece6fb", borderRadius: "13px 13px 13px 3px", padding: "12px 15px", fontSize: "13.5px", lineHeight: 1.55, color: "var(--tx)" }, dangerouslySetInnerHTML: { __html: this.mdLite(m.content) } })];
+          if (m.actions && m.actions.length) {
+            const rows = m.actions.map((a, k) => React.createElement("div", { key: k, style: { display: "flex", gap: "8px", alignItems: "flex-start", fontSize: "12.5px", color: "var(--tx)", lineHeight: 1.45, padding: "2px 0" } },
+              React.createElement("span", { style: { color: "#7a3ff2", flex: "0 0 auto", marginTop: "1px" } }, "▸"),
+              React.createElement("span", null, this.describeAction(a))));
+            let footer;
+            if (m.applied === null || m.applied === undefined) {
+              footer = React.createElement("div", { style: { display: "flex", gap: "8px", marginTop: "12px" } },
+                React.createElement("button", { onClick: () => this.applyMsg(i), style: { background: "#00c875", color: "#fff", border: "none", borderRadius: "7px", padding: "8px 16px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer" } }, "✓ Apply " + m.actions.length + " change" + (m.actions.length > 1 ? "s" : "")),
+                React.createElement("button", { onClick: () => this.dismissMsg(i), style: { background: "#fff", color: "var(--tx2)", border: "1px solid #d7dae6", borderRadius: "7px", padding: "8px 16px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer" } }, "Dismiss"));
+            } else if (m.applied === "dismissed") {
+              footer = React.createElement("div", { style: { marginTop: "11px", fontSize: "12px", color: "var(--tx3)", fontWeight: 600 } }, "Dismissed");
+            } else {
+              footer = React.createElement("div", { style: { marginTop: "11px", fontSize: "12px", color: "#00875a", fontWeight: 700 } }, "✓ Applied — " + m.applied + " change" + (m.applied > 1 ? "s" : "") + " made · undo from the toolbar");
+            }
+            parts.push(React.createElement("div", { key: "a", style: { alignSelf: "flex-start", maxWidth: "92%", background: "#fff", border: "1.5px solid #e2d5fb", borderRadius: "12px", padding: "13px 15px", marginTop: "-2px" } },
+              React.createElement("div", { style: { fontSize: "11px", fontWeight: 700, letterSpacing: ".04em", color: "#7a3ff2", marginBottom: "9px", textTransform: "uppercase" } }, "Proposed changes"),
+              React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "2px" } }, rows), footer));
+          }
+          return React.createElement("div", { key: i, style: { display: "flex", flexDirection: "column", gap: "0", alignItems: "stretch" } }, parts);
+        })),
+      showEmpty: !(aiS.msgs && aiS.msgs.length) && !aiS.loading && !aiS.error,
+      onClose: () => this.setState({ ai: null }),
+      onNewChat: () => this.setState({ ai: Object.assign({}, st.ai, { msgs: [], error: null, question: "" }) }),
+      onQ: e => this.setState({ ai: Object.assign({}, st.ai, { question: e.target.value }) }),
+      onAskKey: e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); const q = e.target.value.trim(); if (q && !aiS.loading) this.runAI("ask", { question: q }); } },
+      onAsk: () => { const q = (st.ai && st.ai.question || "").trim(); if (q && !aiS.loading) this.runAI("ask", { question: q }); },
+      voiceSupported: !!(window.SpeechRecognition || window.webkitSpeechRecognition),
+      listening: !!st.listening,
+      inputPlaceholder: st.listening ? "Listening… speak now" : "Message your pipeline…  (Enter to send, Shift+Enter for newline)",
+      micTitle: st.listening ? "Stop dictation" : "Dictate with voice",
+      micBg: st.listening ? "#e2445c" : "#f4f2fb",
+      micColor: st.listening ? "#fff" : "#7a3ff2",
+      micBorder: st.listening ? "#e2445c" : "#e2d5fb",
+      onMic: () => this.toggleMic(),
+      onChip: e => { const q = e.currentTarget.getAttribute("data-arg"); if (q && !aiS.loading) this.runAI("ask", { question: q }); },
+      chips: aiDeal
+        ? ["What's blocking this deal?", "Request income docs & void cheque", "Order an appraisal", "Send the client a status update"]
+        : ["Which deals close this month?", "What's my total pipeline volume?", "Mark all submitted deals as Approved", "Set Sheridan's lender to TD", "Which deals are waiting on appraisal?"],
+      onDigest: () => this.runAI("digest", {}),
+      onStalled: () => this.runAI("stalled", {}),
+      onSummary: () => { if (aiDeal) this.runAI("summary", { it: aiDeal.it, dealId: aiDeal.it.id }); },
+      onNext: () => { if (aiDeal) this.runAI("next", { it: aiDeal.it, dealId: aiDeal.it.id }); }
+    };
+
+    // chat view model
+    let chat = { show: false, title: "", empty: true, msgs: [], draft: "", count: 0, myInitials: "Y", fmts: [], taRef: () => {}, onClose: () => {}, onInput: () => {}, onDraft: () => {}, onSend: () => {}, onKey: () => {} };
+    if (st.chat) {
+      const isBoard = st.chat === "__board__";
+      const cf = isBoard ? { it: st.board } : this.find(st.chat);
+      if (cf) {
+        const it = cf.it, list = it.chat || [];
+        const send = () => {
+          const ed = this._ta;
+          const html = ed ? this.sanitizeHtml(ed.innerHTML) : "";
+          const plain = ed ? ed.textContent.trim() : "";
+          const pf = st.pendingFiles || [];
+          if (!plain && !pf.length) return;
+          this.mut(() => { if (!it.chat) it.chat = []; it.chat.push({ id: this.newId("m"), author: "You", text: plain, html, ts: Date.now(), files: pf }); });
+          if (ed) ed.innerHTML = "";
+          this.setState({ pendingFiles: [], mentionQ: null });
+        };
+        const FONTS = [["Default", ""], ["Serif", "Georgia, 'Times New Roman', serif"], ["Mono", "ui-monospace, Menlo, monospace"], ["Rounded", "'Trebuchet MS', Verdana, sans-serif"]];
+        const COLORS = [["Default", ""], ["Blue", "#0073ea"], ["Green", "#00c875"], ["Orange", "#fdab3d"], ["Red", "#e2445c"], ["Purple", "#a25ddc"], ["Teal", "#00a9b5"], ["Gray", "var(--tx2)"]];
+        const mentions = st.mentionQ === null || st.mentionQ === undefined ? [] : this.people().filter(n => n !== "You" && n.toLowerCase().includes(st.mentionQ.toLowerCase())).slice(0, 8);
+        const pick = name => this.insertMention(name);
+        const allFiles = [];
+        list.forEach(m => (m.files || []).forEach(f => allFiles.push({ name: f.name, href: f.data || "#", meta: this.fmtSize(f.size) + " · " + m.author + " · " + this.timeAgo(m.ts) })));
+        const tabFiles = st.chatTab === "files", tabAct = st.chatTab === "act";
+        const actKey = isBoard ? "__board__" : it.id;
+        const acts = (st.board.acts || []).filter(x => isBoard ? true : x.itemId === actKey).slice().reverse().map(x => ({ msg: x.msg, time: this.timeAgo(x.ts), initials: this.initials("You"), avatarBg: this.avatarColor("You") }));
+        const tabSt = on => on ? { line: "#0073ea", color: "#0073ea", weight: 600 } : { line: "transparent", color: "var(--tx2)", weight: 400 };
+        const tU = tabSt(!tabFiles && !tabAct), tF = tabSt(tabFiles), tA = tabSt(tabAct);
+        const qcs = cmd => { try { return document.queryCommandState(cmd); } catch (e) { return false; } };
+        const fmtBtn = (glyph, title, cmd, extra, onApply) => Object.assign({ glyph, title, weight: 500, fstyle: "normal", deco: "none", family: "inherit",
+          bg: qcs(cmd) ? "#e0ecfb" : "transparent", fg: qcs(cmd) ? "#0073ea" : "var(--tx2)", bord: qcs(cmd) ? "#0073ea55" : "transparent",
+          onApply }, extra);
+        chat = {
+          show: true, title: isBoard ? "Whole board" : it.name, empty: list.length === 0, draft: st.draft,
+          count: list.length, myInitials: this.initials("You"),
+          tabUpdates: !tabFiles && !tabAct, tabFiles, tabAct,
+          acts, noActs: acts.length === 0,
+          updTabLine: tU.line, updTabColor: tU.color, updTabWeight: tU.weight,
+          fileTabLine: tF.line, fileTabColor: tF.color, fileTabWeight: tF.weight,
+          actTabLine: tA.line, actTabColor: tA.color, actTabWeight: tA.weight,
+          onTabUpdates: () => this.setState({ chatTab: "updates" }),
+          onTabFiles: () => this.setState({ chatTab: "files" }),
+          onTabAct: () => this.setState({ chatTab: "act" }),
+          hasFiles: allFiles.length > 0, fileCount: allFiles.length, noFiles: allFiles.length === 0, files: allFiles.reverse(),
+          fileRef: el => { this._fi = el; },
+          onAttach: e => { e.preventDefault(); if (this._fi) this._fi.click(); },
+          onFiles: e => { if (e.target.files && e.target.files.length) { this.readFiles(e.target.files); e.target.value = ""; } },
+          hasPending: (st.pendingFiles || []).length > 0,
+          pending: (st.pendingFiles || []).map((f, i) => ({ name: f.name, onRemove: () => this.setState({ pendingFiles: st.pendingFiles.filter((x, j) => j !== i) }) })),
+          mentionOpen: mentions.length > 0,
+          mentions: mentions.map(n => ({ name: n, initials: this.initials(n), avatarBg: this.avatarColor(n), onPick: e => { e.preventDefault(); pick(n); } })),
+          taRef: el => { this._ta = el; },
+          fmts: [
+            fmtBtn("B", "Bold", "bold", { weight: 800 }, e => { e.preventDefault(); this.exec("bold"); }),
+            fmtBtn("I", "Italic", "italic", { fstyle: "italic" }, e => { e.preventDefault(); this.exec("italic"); }),
+            fmtBtn("S", "Strikethrough", "strikeThrough", { deco: "line-through" }, e => { e.preventDefault(); this.exec("strikeThrough"); }),
+            fmtBtn("<>", "Code", "__none", { weight: 600, family: "ui-monospace,Menlo,monospace" }, e => { e.preventDefault(); const sel = window.getSelection(); const txt = sel && !sel.isCollapsed ? sel.toString() : "code"; this.exec("insertHTML", '<code style="font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--s3);border:1px solid var(--bd);border-radius:4px;padding:0 4px">' + txt.replace(/</g, "&lt;") + "</code>&nbsp;"); }),
+            fmtBtn("≔", "Bulleted list", "insertUnorderedList", { weight: 600 }, e => { e.preventDefault(); this.exec("insertUnorderedList"); }),
+            fmtBtn("1.", "Numbered list", "insertOrderedList", { weight: 600 }, e => { e.preventDefault(); this.exec("insertOrderedList"); })
+          ],
+          fontMenuOpen: !!st.fontMenu, colorMenuOpen: !!st.colorMenu,
+          fontLabel: (FONTS.find(f => f[1] === (st.chatFont || "")) || FONTS[0])[0],
+          colorSwatch: st.chatColor || "var(--tx)",
+          onFontMenu: e => { e.preventDefault(); this.setState({ fontMenu: !st.fontMenu, colorMenu: false }); },
+          onColorMenu: e => { e.preventDefault(); this.setState({ colorMenu: !st.colorMenu, fontMenu: false }); },
+          fonts: FONTS.map(f => ({ name: f[0], family: f[1] || "'Figtree',sans-serif", check: (st.chatFont || "") === f[1] ? "✓" : "", onPick: e => { e.preventDefault(); this.setState({ chatFont: f[1] || null, fontMenu: false }); this.exec("fontName", f[1] || "'Figtree',sans-serif"); } })),
+          colors: COLORS.map(c => ({ name: c[0], hex: c[1] || "var(--tx)", border: (st.chatColor || "") === c[1] ? "#0073ea" : "transparent", onPick: e => { e.preventDefault(); this.setState({ chatColor: c[1] || null, colorMenu: false }); this.exec("foreColor", c[1] || "var(--tx)"); } })),
+          msgs: list.slice().reverse().map(m => ({
+            id: m.id, author: m.author, text: m.text, body: m.html ? React.createElement("span", { className: "msg-body", dangerouslySetInnerHTML: { __html: m.html } }) : React.createElement("span", { style: { fontFamily: m.font || "inherit", color: m.color || "inherit" } }, this.renderBody(m.text)), time: this.timeAgo(m.ts),
+            initials: this.initials(m.author), avatarBg: this.avatarColor(m.author),
+            likeLabel: m.likes ? "Like · " + m.likes : "Like", likeColor: m.liked ? "#0073ea" : "var(--tx2)", likeWeight: m.liked ? 600 : 400,
+            hasFiles: (m.files || []).length > 0,
+            files: (m.files || []).map(f => ({ name: f.name, href: f.data || "#", size: this.fmtSize(f.size) })),
+            onLike: () => this.mut(() => { const t = (it.chat || []).find(x => x.id === m.id); if (t) { t.liked = !t.liked; t.likes = (t.likes || 0) + (t.liked ? 1 : -1) || 0; } }),
+            onReply: () => { const ed = this._ta; if (ed) { ed.focus(); if (!ed.textContent.trim() && m.author !== "You") document.execCommand("insertHTML", false, '<span style="color:#0073ea;font-weight:600;background:#e0ecfb;border-radius:4px;padding:0 3px">@' + m.author + "</span>&nbsp;"); } },
+            onDelete: () => this.mut(() => { it.chat = (it.chat || []).filter(x => x.id !== m.id); })
+          })),
+          onClose: () => this.setState({ chat: null, draft: "", chatTab: "updates", pendingFiles: [], mentionQ: null }),
+          composeMenuOpen: !!st.composeMenu, composeBusy: st.aiCompose === "loading", composeErr: st.aiCompose === "err",
+          onCompose: e => { e.preventDefault(); this.setState({ composeMenu: !st.composeMenu, fontMenu: false, colorMenu: false }); },
+          onDraftUpdate: e => { e.preventDefault(); this.smartCompose("draft"); },
+          onImprove: e => { e.preventDefault(); this.smartCompose("improve"); },
+          onInput: () => { const ctx = this.mentionCtx(); this.setState({ mentionQ: ctx ? ctx.q : null }); },
+          onSelUpdate: () => this.forceUpdate(),
+          onSend: send,
+          onKey: e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }
+        };
+      }
+    }
+
+    return {
+      loading: false,
+      boardName: activeBoardName ? activeBoardName.name : seed.boardName, boardDesc: seed.boardDesc,
+      boards: boardsList, stopProp: e => e.stopPropagation(),
+      search: st.search,
+      collapseLabel: st.allCollapsed ? "Expand all" : "Collapse all",
+      vgroups: vgroupsShown, pop, chat, ai, gridCols, columns, confirm, co, volCol,
+      onAIOpen: () => this.setState({ ai: { open: true } }),
+      autosOpen: !!st.autosOpen,
+      onAutosOpen: () => this.setState({ autosOpen: true, notifOpen: false }),
+      onAutosClose: () => this.setState({ autosOpen: false }),
+      autosList: AUTOS.map(a => ({
+        text: a.text, on: this.autoOn(a.key),
+        knobBg: this.autoOn(a.key) ? "#00c875" : "#c5c7d0", knobX: this.autoOn(a.key) ? 18 : 2,
+        onToggle: () => {
+          const autos = Object.assign({}, st.autos, { [a.key]: !this.autoOn(a.key) });
+          try { localStorage.setItem(LS_AUTOS, JSON.stringify(autos)); } catch (e) { }
+          this.setState({ autos });
+        }
+      })),
+      notifOpen: !!st.notifOpen,
+      trashOpen: !!st.trashOpen,
+      trashCount: (st.trash || []).length, hasTrash: (st.trash || []).length > 0, noTrash: (st.trash || []).length === 0,
+      onTrashOpen: () => this.setState({ trashOpen: !st.trashOpen, notifOpen: false, autosOpen: false, filterOpen: false }),
+      onTrashClose: () => this.setState({ trashOpen: false }),
+      onTrashEmpty: () => { this.saveTrash([]); this.setState({ trash: [] }); },
+      trashItems: (st.trash || []).slice().reverse().map(t => ({
+        name: t.name, icon: t.kind === "board" ? "📋" : "📄",
+        meta: (t.kind === "board" ? "Board" : 'Deal · from "' + (t.gtitle || "group") + '"') + " · deleted " + this.timeAgo(t.ts) + " · auto-empties " + new Date(t.ts + 30 * 86400000).toLocaleDateString(),
+        onRestore: () => {
+          const rest = this.loadTrash().filter(x => x.tid !== t.tid);
+          this.saveTrash(rest);
+          if (t.kind === "board") {
+            this.pushUndo();
+            const arr = st.boards.concat([t.data]);
+            try { localStorage.setItem(LS_BOARDS, JSON.stringify(arr)); } catch (e) { }
+            this.setState({ boards: arr, trash: rest, canUndo: true });
+          } else {
+            this.mut(b => {
+              const g = b.groups.find(x => x.id === t.gid) || b.groups[0];
+              if (!(g.items || []).some(x => x.id === t.data.id)) g.items.splice(Math.min(t.idx ?? g.items.length, g.items.length), 0, t.data);
+            });
+            this.setState({ trash: rest });
+          }
+        },
+        onPurge: () => { const rest = this.loadTrash().filter(x => x.tid !== t.tid); this.saveTrash(rest); this.setState({ trash: rest }); }
+      })),
+      notifCount: (st.notifs || []).length, hasNotifs: (st.notifs || []).length > 0, noNotifs: (st.notifs || []).length === 0,
+      notifBellColor: (st.notifs || []).length ? "#0073ea" : "var(--tx2)",
+      onNotifOpen: () => this.setState({ notifOpen: !st.notifOpen, autosOpen: false }),
+      onNotifClose: () => this.setState({ notifOpen: false }),
+      onClearAllNotifs: () => this.setState({ confirm: { type: "clearAllNotif" } }),
+      notifs: (st.notifs || []).slice().reverse().map(n => ({
+        msg: n.msg, time: this.timeAgo(n.ts),
+        onDismiss: () => {
+          let dis = []; try { dis = JSON.parse(localStorage.getItem(LS_NOTIF_DIS) || "[]"); } catch (e) { }
+          if (!dis.includes(n.key)) { dis.push(n.key); try { localStorage.setItem(LS_NOTIF_DIS, JSON.stringify(dis.slice(-500))); } catch (e) { } }
+          this.setState({ notifs: st.notifs.filter(x => x.key !== n.key) });
+        }
+      })),
+      undoDisabled: !st.canUndo, undoColor: st.canUndo ? "var(--tx2)" : "#c5c7d0", undoCursor: st.canUndo ? "pointer" : "default",
+      onUndo: () => this.undo(),
+      boardHasChat: (st.board.chat || []).length > 0,
+      boardChatCount: (st.board.chat || []).length,
+      boardChatColor: (st.board.chat || []).length > 0 ? "#0073ea" : "var(--tx2)",
+      onBoardChat: () => this.setState({ chat: "__board__", draft: "" }),
+      onSearch: e => this.setState({ search: e.target.value }),
+      filterOpen: !!st.filterOpen,
+      filterActive: !!(st.filterAgent || st.filterLender),
+      filterLabel: [st.filterAgent, st.filterLender].filter(Boolean).join(" · ") || "Filter",
+      filterColor: (st.filterAgent || st.filterLender) ? "#0073ea" : "var(--tx2)",
+      filterBorder: (st.filterAgent || st.filterLender) ? "#0073ea" : "var(--bd3)",
+      onFilterOpen: () => this.setState({ filterOpen: !st.filterOpen, notifOpen: false, autosOpen: false }),
+      onFilterClose: () => this.setState({ filterOpen: false }),
+      onFilterClear: () => this.setState({ filterAgent: null, filterLender: null, filterOpen: false }),
+      filterAgents: (seed.labels.agent || []).map(([nm, c]) => ({ name: nm, dot: c, on: st.filterAgent === nm, check: st.filterAgent === nm ? "\u2713" : "", onPick: () => this.setState({ filterAgent: st.filterAgent === nm ? null : nm }) })),
+      filterLenders: (seed.dropdowns.lender || []).map(nm => ({ name: nm, on: st.filterLender === nm, check: st.filterLender === nm ? "\u2713" : "", onPick: () => this.setState({ filterLender: st.filterLender === nm ? null : nm }) })),
+      onEnterBlur: e => { if (e.key === "Enter") e.target.blur(); },
+      onNewDeal: e => {
+        const r = e.currentTarget.getBoundingClientRect();
+        this.setState({ pop: { type: "newdeal", x: r.left, y: r.bottom + 4 } });
+      },
+      onCollapseAll: () => {
+        const c = {};
+        if (!st.allCollapsed) st.board.groups.forEach(g => { c[g.id] = true; });
+        this.saveCollapsed(c);
+        this.setState({ collapsed: c, allCollapsed: !st.allCollapsed });
+      },
+      onReset: () => {
+        if (window.confirm("Reset the board to the original monday.com snapshot? Your local edits will be lost.")) {
+          try { localStorage.removeItem(LS); } catch (e) { }
+          this._undo = [];
+          this.setState({ board: JSON.parse(JSON.stringify({ groups: seed.groups })), expanded: {}, edit: null, pop: null, canUndo: false });
+        }
+      },
+      onClosePop: () => this.setState({ pop: null }),
+      onCloseEdits: () => { if (st.edit) this.setState({ edit: null }); },
+      dark: !!st.dark, light: !st.dark, themeClass: st.dark ? "dark" : "", onThemeToggle: this.onThemeToggle, themeTitle: st.dark ? "Switch to light mode" : "Switch to dark mode"
+    };
+  }
+}
+</script>
+</body>
+</html>
