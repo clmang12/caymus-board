@@ -1,5 +1,7 @@
-/* Design tokens — from design-reference/README.md (light theme, final). */
-.board-root {
+/* Design tokens — from design-reference/README.md (light theme, final).
+   On :root, not .board-root, so portaled content (Popover renders into
+   document.body, outside .board-root) resolves them too. */
+:root {
   --s1: #ffffff;   /* page / card surface */
   --s2: #f6f7fb;   /* app background */
   --s3: #f0f2f7;   /* row hover, subtle fill */
@@ -15,7 +17,9 @@
   --sum: #fbfcfe;
   --shadow-pop: 0 12px 32px rgba(30, 40, 80, .22);
   --shadow-card: 0 4px 20px rgba(30, 40, 80, .06);
+}
 
+.board-root {
   height: 100vh;
   display: flex;
   overflow: hidden;
@@ -183,8 +187,10 @@
 
 /* popover */
 .pop {
-  position: fixed; z-index: 1000; background: var(--s1); border: 1px solid var(--bd3);
-  border-radius: 12px; box-shadow: var(--shadow-pop); padding: 8px; min-width: 200px;
+  position: fixed; z-index: 1000; background: var(--s1, #fff);
+  border: 1px solid var(--bd3, #d0d4e4); border-radius: 12px;
+  box-shadow: var(--shadow-pop, 0 12px 32px rgba(30, 40, 80, .22));
+  padding: 8px; min-width: 200px;
 }
 .pop-opt {
   display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px;
