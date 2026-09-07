@@ -19,10 +19,14 @@ Data: \`updateItem(itemId, patch)\`, \`updateSubitem(subitemId, patch)\`.
 Note: write optimistically to local state, then reconcile — the realtime echo
 of your own change will arrive a moment later and must not cause a flicker.
 
-## 3. Subitem checklists
+## 3. Subitem checklists — DONE (commit TBD)
 Prototype: expand an item to reveal condition rows with their own status.
-Data: \`getSubitems(itemId)\`, \`addSubitem\`, \`updateSubitem\`, \`deleteSubitem\`.
-The Purch/Refi templates in the prototype become rows in \`subitem_templates\`.
+Data: \`getSubitems(itemId)\`, \`addSubitem\`, \`updateSubitem\`, \`deleteSubitem\`,
+\`applyTemplate(sb, itemId, boardId, deal)\` (board-scoped, idempotent).
+Built: \`components/board/SubitemPanel.jsx\` — editable name / status popover /
+date / details / delete, "+ Add condition", empty-state Purch|Refi checklist
+buttons. Optimistic writes in \`BoardGrid.jsx\`, reconciled by the \`subitems\`
+realtime handler.
 
 ## 4. Multiple boards + sidebar
 Prototype: sidebar list, drag to reorder, rename, duplicate, delete.
@@ -60,6 +64,7 @@ as notifications. \`automations\` stores which are enabled per board.
 
 ## Suggested order
 1, 2, 4 first — that gets you a usable app. Then 3, 7, 5, 6, 8, 9.
+Done so far: 1, 2, 3. Remaining: 4, 7, 5, 6, 8, 9.
 
 ## Working with Claude Code
 From the repo root:

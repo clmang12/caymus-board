@@ -13,6 +13,7 @@ export default function GroupSection({
   group, cols, options, collapsed, onToggleCollapsed,
   onCommitItem, onResizeColumn, onResizeEnd, onReorderColumns,
   sort, onSort, expandedIds, onToggleExpand, onAddItem,
+  onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
 }) {
   const [dragKey, setDragKey] = useState(null);
   const [overKey, setOverKey] = useState(null);
@@ -90,6 +91,10 @@ export default function GroupSection({
               onCommit={(patch) => onCommitItem(it.id, patch)}
               expanded={expandedIds.has(it.id)}
               onToggleExpand={() => onToggleExpand(it.id)}
+              onCommitSubitem={(subId, patch) => onCommitSubitem(it.id, subId, patch)}
+              onAddSubitem={(name) => onAddSubitem(it.id, name)}
+              onDeleteSubitem={(subId) => onDeleteSubitem(it.id, subId)}
+              onApplyChecklist={(deal) => onApplyChecklist(it.id, deal)}
             />
           ))}
           {items.length === 0 && (

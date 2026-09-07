@@ -14,8 +14,8 @@ Code / Claude for VS Code window. Companion docs: `README.md` (overview),
 - **Live:** https://caymus-board.vercel.app — auto-deploys from `main` on every push.
 - Repo: https://github.com/clmang12/caymus-board (private). Branch `main`, last
   commit `26fe94d`.
-- **PORTING item 1 (board grid) + item 2 (inline editing) are DONE.** Everything
-  in `components/board/`. Items 3–9 remain.
+- **PORTING items 1 (board grid), 2 (inline editing), and 3 (subitem CRUD) are
+  DONE.** Everything in `components/board/`. Items 4–9 remain.
 - Auth works end to end **except email delivery** (Supabase built-in SMTP is
   rate-limited; custom SMTP not set up — see "Signing in" below for the bypass).
 
@@ -136,15 +136,29 @@ persist and survive reload; column resize + collapse persist to `user_prefs`;
 search filters across groups; realtime push updates the open grid; no runtime
 exceptions.
 
+### PORTING item 3 — subitem CRUD
+- `components/board/SubitemPanel.jsx` (new) — replaces the read-only condition
+  panel in `ItemRow.jsx`. Editable rows: name (blur), status (colour-swatch
+  popover, `cond` field options), due date, details (blur), delete (✕).
+  "+ Add condition" input; empty-state buttons apply the Purch / Refi checklist.
+- `lib/data/subitems.js` — `applyTemplate` now scopes to `board_id` and is
+  idempotent (skips conditions the item already has, appends after existing).
+  Added `listTemplateDeals`.
+- `BoardGrid.jsx` — optimistic `createSubitem` / `commitSubitem` / `removeSubitem`
+  / `applyChecklist`, reconciled by the existing `subitems` realtime handler;
+  threaded through `GroupSection` → `ItemRow`.
+- Verified (headless Chrome + CDP, live DB, `scripts/_ui-test-item3.mjs`):
+  add / status-change / details-edit / delete all persist; new row appears in
+  the open grid; no console errors. `scripts/_verify.mjs` covers the data layer.
+
 ---
 
 ## What's NOT done (next work)
 
-From `PORTING.md`, suggested order 3 → 7 → 5 → 6 → 8 → 9:
+From `PORTING.md`, remaining order 4 → 7 → 5 → 6 → 8 → 9:
 
 | # | Item | Notes |
 |---|---|---|
-| 3 | Subitem CRUD | condition rows are read-only now; add/edit/delete + `subitem_templates` (Purch/Refi checklists already seeded) |
 | 4 | Sidebar board CRUD + drag rows between groups | `Sidebar.jsx` is still the minimal stub; `lib/data/boards.js` has the fns |
 | 5 | Server-side notifications | move from client-computed to a `pg_cron` job inserting into `notifications` |
 | 6 | AI assistant drawer | POST `/api/claude` (route done; fix the API key) |

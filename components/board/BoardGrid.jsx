@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { subscribeToBoard } from '@/lib/data/realtime';
 import { updateItem, createItem } from '@/lib/data/boards';
+import { addSubitem, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
 import { savePrefs } from '@/lib/data/prefs';
 import GroupSection from './GroupSection';
 import { resolveColumns, DEFAULT_ORDER } from './columns';
@@ -138,6 +139,49 @@ export default function BoardGrid({ user, board, options, prefs }) {
     } catch (e) { console.error('createItem failed', e); }
   }, [sb, board.id]);
 
+  // ---- subitem mutations (optimistic) ----
+  const patchSubs = useCallback((itemId, fn) => {
+    setTree((t) => ({
+      ...t,
+      groups: t.groups.map((g) => ({
+        ...g,
+        items: g.items.map((it) =>
+          it.id === itemId ? { ...it, subitems: fn(it.subitems || []) } : it),
+      })),
+    }));
+  }, []);
+
+  const commitSubitem = useCallback((itemId, subitemId, patch) => {
+    patchSubs(itemId, (subs) => subs.map((s) => (s.id === subitemId ? { ...s, ...patch } : s)));
+    updateSubitem(sb, subitemId, patch).catch((e) => console.error('updateSubitem failed', e));
+  }, [sb, patchSubs]);
+
+  const removeSubitem = useCallback((itemId, subitemId) => {
+    patchSubs(itemId, (subs) => subs.filter((s) => s.id !== subitemId));
+    deleteSubitem(sb, subitemId).catch((e) => console.error('deleteSubitem failed', e));
+  }, [sb, patchSubs]);
+
+  const createSubitem = useCallback(async (itemId, name) => {
+    try {
+      const created = await addSubitem(sb, itemId, name);
+      patchSubs(itemId, (subs) =>
+        subs.some((s) => s.id === created.id)
+          ? subs
+          : [...subs, created].sort((a, b) => a.position - b.position));
+    } catch (e) { console.error('addSubitem failed', e); }
+  }, [sb, patchSubs]);
+
+  const applyChecklist = useCallback(async (itemId, deal) => {
+    try {
+      const rows = await applyTemplate(sb, itemId, board.id, deal);
+      if (!rows.length) return;
+      patchSubs(itemId, (subs) => {
+        const seen = new Set(subs.map((s) => s.id));
+        return [...subs, ...rows.filter((r) => !seen.has(r.id))].sort((a, b) => a.position - b.position);
+      });
+    } catch (e) { console.error('applyTemplate failed', e); }
+  }, [sb, board.id, patchSubs]);
+
   // ---- column ops ----
   const resizeColumn = useCallback((key, width) => {
     setPrefsState((p) => ({ ...p, colWidths: { ...p.colWidths, [key]: width } }));
@@ -231,6 +275,10 @@ export default function BoardGrid({ user, board, options, prefs }) {
               expandedIds={expandedIds}
               onToggleExpand={toggleExpand}
               onAddItem={addItem}
+              onCommitSubitem={commitSubitem}
+              onAddSubitem={createSubitem}
+              onDeleteSubitem={removeSubitem}
+              onApplyChecklist={applyChecklist}
             />
           );
         })}
