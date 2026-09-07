@@ -182,9 +182,13 @@ reference. Match its tokens/behaviour with React.
   were removed because they broke things.
 - **npm audit**: 5 high advisories against Next 14.2.x whose only fix is Next 16
   (major). Deferred — low real risk on Vercel with no custom server.
+- **Design tokens live on `:root`** in `board.css` (not `.board-root`) — the
+  `Popover` portals into `document.body`, so scoping `--s1` etc. to `.board-root`
+  made every popover render transparent. `.pop` also has literal fallbacks.
 - **Local dev helper scripts** `scripts/_*.mjs` are gitignored (contain admin
   logic): `_mint-session`, `_verify` (data-layer suite — `node scripts/_verify.mjs`,
-  15 checks, self-cleaning), `_verify-realtime`, `_vercel-setup`, `_vercel-fix`.
+  16 checks, self-cleaning), `_verify-realtime`, `_vercel-setup`, `_vercel-fix`,
+  `_ui-test-item3` (headless subitem-CRUD check), `_ui-popover-shot`.
 - **Vercel API access**: the user supplied a temporary `VERCEL_TOKEN` once (used
   to set env vars + redeploy), then removed it. Not available now — ask if you
   need to touch Vercel programmatically; otherwise a `git push` auto-deploys.
