@@ -12,8 +12,9 @@ new Claude Code / Claude for VS Code window. Companion docs: `README.md`
 - Migrating a Claude Design prototype into a real app: **Next.js 14 (App Router) +
   Supabase**, deployed on **Vercel**.
 - **Live:** https://caymus-board.vercel.app — auto-deploys from `main` on every push.
-- Repo: https://github.com/clmang12/caymus-board (private). Branch `main`,
-  HEAD `39b4916`, pushed, working tree clean. Prod deploy of `39b4916` is green.
+- Repo: https://github.com/clmang12/caymus-board (private). Branch `main`.
+  As of this handoff: through `39b4916` (+ this doc commit), pushed, tree clean,
+  prod deploy green. `git log --oneline -5` for the real HEAD.
 - **PORTING items 1 (board grid), 2 (inline editing), and 3 (subitem CRUD) are
   DONE and deployed.** Everything in `components/board/`. Items 4–9 remain.
 - Auth works end to end **except email delivery** (Supabase built-in SMTP is
