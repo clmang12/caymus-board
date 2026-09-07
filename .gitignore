@@ -9,6 +9,7 @@ build/
 *.log
 .vercel
 supabase/.temp/
+scripts/_*
 .idea/
 .vscode/*
 !.vscode/extensions.json
