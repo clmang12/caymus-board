@@ -1,9 +1,9 @@
 # HANDOFF — CAYMUS Board
 
-Session state as of 2026-09-07. Read this first when resuming in a new Claude
-Code / Claude for VS Code window. Companion docs: `README.md` (overview),
-`PORTING.md` (remaining UI work, numbered), `DEPLOY.md` (Vercel), `SMTP-SETUP.md`
-(email), `design-reference/README.md` (design spec + tokens).
+Session state as of 2026-09-07 (session 2). Read this first when resuming in a
+new Claude Code / Claude for VS Code window. Companion docs: `README.md`
+(overview), `PORTING.md` (remaining UI work, numbered), `DEPLOY.md` (Vercel),
+`SMTP-SETUP.md` (email), `design-reference/README.md` (design spec + tokens).
 
 ---
 
@@ -12,12 +12,21 @@ Code / Claude for VS Code window. Companion docs: `README.md` (overview),
 - Migrating a Claude Design prototype into a real app: **Next.js 14 (App Router) +
   Supabase**, deployed on **Vercel**.
 - **Live:** https://caymus-board.vercel.app — auto-deploys from `main` on every push.
-- Repo: https://github.com/clmang12/caymus-board (private). Branch `main`, last
-  commit `26fe94d`.
+- Repo: https://github.com/clmang12/caymus-board (private). Branch `main`,
+  HEAD `39b4916`, pushed, working tree clean. Prod deploy of `39b4916` is green.
 - **PORTING items 1 (board grid), 2 (inline editing), and 3 (subitem CRUD) are
-  DONE.** Everything in `components/board/`. Items 4–9 remain.
+  DONE and deployed.** Everything in `components/board/`. Items 4–9 remain.
 - Auth works end to end **except email delivery** (Supabase built-in SMTP is
   rate-limited; custom SMTP not set up — see "Signing in" below for the bypass).
+
+### This session (2026-09-07, session 2)
+- Shipped PORTING item 3 (subitem CRUD) — `1663a35`, deployed.
+- Fixed a transparent-popover bug — every `Popover` (Agent/Status/Lender cell
+  menus + the new condition-status menu) rendered with no background because the
+  design tokens were scoped to `.board-root` and `Popover` portals into
+  `document.body`. Moved tokens to `:root`, added `.pop` fallbacks — `930c64c`.
+- Added headless dev scripts `scripts/_ui-test-item3.mjs`, `_ui-popover-shot.mjs`
+  (gitignored).
 
 ---
 
@@ -117,13 +126,14 @@ admin access to `caymusmortgage.ca`, so a sending domain must be arranged
 - `columns.js` — 14-column model (from `design-reference/README.md`), formatters,
   prefs resolution. Column widths/order persist per-user in `user_prefs`, keyed
   by column key.
-- `board.css` — design tokens (light theme only).
-- `Popover.jsx` — portal-based, escapes grid overflow, closes on outside
-  click / Esc / scroll.
+- `board.css` — design tokens (light theme only). Tokens are on `:root` (see
+  Gotchas) — everything else keys off them.
+- `Popover.jsx` — portal-based (into `document.body`), escapes grid overflow,
+  closes on outside click / Esc / scroll.
 - `Cell.jsx` — one renderer/editor per type: text, currency, date, label
   (colour-swatch popover), dropdown, multi-select (lender).
-- `ItemRow.jsx` — sticky Deal/Client column, 13 cells, expand → **read-only**
-  subitem condition panel + progress bar.
+- `ItemRow.jsx` — sticky Deal/Client column, 13 cells, expand → `SubitemPanel`
+  (editable, see item 3 below) + progress bar.
 - `GroupSection.jsx` — collapsible group card, header row with drag-resize /
   drag-reorder / click-sort, "+ Add deal", volume SUM row.
 - `BoardGrid.jsx` — toolbar (search, collapse-all), realtime merge for
@@ -136,7 +146,7 @@ persist and survive reload; column resize + collapse persist to `user_prefs`;
 search filters across groups; realtime push updates the open grid; no runtime
 exceptions.
 
-### PORTING item 3 — subitem CRUD
+### PORTING item 3 — subitem CRUD (commits `1663a35`, `930c64c`)
 - `components/board/SubitemPanel.jsx` (new) — replaces the read-only condition
   panel in `ItemRow.jsx`. Editable rows: name (blur), status (colour-swatch
   popover, `cond` field options), due date, details (blur), delete (✕).
@@ -147,27 +157,30 @@ exceptions.
 - `BoardGrid.jsx` — optimistic `createSubitem` / `commitSubitem` / `removeSubitem`
   / `applyChecklist`, reconciled by the existing `subitems` realtime handler;
   threaded through `GroupSection` → `ItemRow`.
+- `board.css` — 5-col subitem grid (added a delete column) + `.sub-*` input styles.
 - Verified (headless Chrome + CDP, live DB, `scripts/_ui-test-item3.mjs`):
   add / status-change / details-edit / delete all persist; new row appears in
-  the open grid; no console errors. `scripts/_verify.mjs` covers the data layer.
+  the open grid; popover renders opaque; no console errors. `scripts/_verify.mjs`
+  covers the data layer (16 checks).
 
 ---
 
 ## What's NOT done (next work)
 
-From `PORTING.md`, remaining order 4 → 7 → 5 → 6 → 8 → 9:
+From `PORTING.md`, remaining order **4 → 7 → 5 → 6 → 8 → 9**:
 
 | # | Item | Notes |
 |---|---|---|
-| 4 | Sidebar board CRUD + drag rows between groups | `Sidebar.jsx` is still the minimal stub; `lib/data/boards.js` has the fns |
-| 5 | Server-side notifications | move from client-computed to a `pg_cron` job inserting into `notifications` |
-| 6 | AI assistant drawer | POST `/api/claude` (route done; fix the API key) |
-| 7 | File attachments | `lib/data/attachments.js` + private bucket (both ready) |
-| 8 | Mobile card view <768px | `components/board/BoardCards.jsx` — don't make the 14-col grid responsive |
-| 9 | Automations | Postgres triggers / scheduled fns; `automations` table stores enabled-per-board |
+| 4 | Sidebar board CRUD + drag rows between groups | `Sidebar.jsx` is still the minimal stub. `lib/data/boards.js` has `listBoards` / `reorderBoards` / `renameBoard` / `duplicateBoard` / `deleteBoard` (soft-delete into `trash`). Also drag an item row between groups — `moveItem` exists; realtime `items` handler already moves a row when `group_id` changes. |
+| 5 | Server-side notifications | Prototype computes them client-side each load. Replace with a Supabase `pg_cron` daily job that inserts into `notifications`; `lib/data/notifications.js` already reads / marks read / clears. |
+| 6 | AI assistant drawer | Route `POST /api/claude` is done (key server-side). **Blocked:** `ANTHROPIC_API_KEY` is rejected as invalid — regenerate before building this. Prototype's drawer + `actions` JSON protocol is in `design-reference/CAYMUS 25 Board.dc.html` (~line 1280). |
+| 7 | File attachments | `lib/data/attachments.js` + the private `attachments` bucket are both ready; no UI. Signed URLs for download. `attachments` rows can hang off an item or a subitem. |
+| 8 | Mobile card view <768px | Build `components/board/BoardCards.jsx` — one card per deal, tap → detail sheet. Do **not** make the 14-col grid responsive. |
+| 9 | Automations | Postgres triggers / scheduled fns; `automations` table stores which are enabled per board. e.g. prototype's "stamp condition date when its status changes". |
 
-Also not started: dark theme (tokens exist in prototype), filter menu, undo,
-trash/restore view.
+Also not started: dark theme (prototype has the dark token set; `board.css` is
+light-only, tokens now on `:root` so a `@media (prefers-color-scheme)` / toggle
+override is straightforward), filter menu, undo, trash/restore view.
 
 Do **not** copy `design-reference/CAYMUS 25 Board.dc.html` into the app — it's a
 reference. Match its tokens/behaviour with React.
