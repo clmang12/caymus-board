@@ -13,3 +13,4 @@ scripts/_*
 .idea/
 .vscode/*
 !.vscode/extensions.json
+*.code-workspace
