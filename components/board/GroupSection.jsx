@@ -14,9 +14,11 @@ export default function GroupSection({
   onCommitItem, onResizeColumn, onResizeEnd, onReorderColumns,
   sort, onSort, expandedIds, onToggleExpand, onAddItem,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
+  dragItemId, onRowDragStart, onRowDragEnd, onMoveRow,
 }) {
   const [dragKey, setDragKey] = useState(null);
   const [overKey, setOverKey] = useState(null);
+  const [rowOver, setRowOver] = useState(null); // itemId being hovered, or '__end__'
   const resizing = useRef(null);
   const tmpl = gridTemplate(cols);
   const open = !collapsed;
@@ -53,7 +55,18 @@ export default function GroupSection({
       </div>
 
       {open && (
-        <div className="grid-box" style={{ borderColor: softColor(group.color), borderLeft: `4px solid ${group.color}` }}>
+        <div
+          className={'grid-box' + (dragItemId && rowOver === '__end__' ? ' row-drop-here' : '')}
+          style={{ borderColor: softColor(group.color), borderLeft: `4px solid ${group.color}` }}
+          onDragOver={(e) => { if (dragItemId) { e.preventDefault(); setRowOver('__end__'); } }}
+          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setRowOver(null); }}
+          onDrop={(e) => {
+            if (!dragItemId) return;
+            e.preventDefault();
+            onMoveRow(dragItemId, group.id, null);
+            setRowOver(null);
+          }}
+        >
           {/* header */}
           <div className="hrow" style={{ gridTemplateColumns: tmpl }}>
             {cols.map((col) => {
@@ -95,6 +108,12 @@ export default function GroupSection({
               onAddSubitem={(name) => onAddSubitem(it.id, name)}
               onDeleteSubitem={(subId) => onDeleteSubitem(it.id, subId)}
               onApplyChecklist={(deal) => onApplyChecklist(it.id, deal)}
+              dragging={dragItemId === it.id}
+              dropBefore={!!dragItemId && dragItemId !== it.id && rowOver === it.id}
+              onDragStartRow={() => onRowDragStart(it.id)}
+              onDragEndRow={() => { onRowDragEnd(); setRowOver(null); }}
+              onDragOverRow={() => { if (dragItemId && dragItemId !== it.id) setRowOver(it.id); }}
+              onDropRow={() => { if (dragItemId) { onMoveRow(dragItemId, group.id, it.id); setRowOver(null); } }}
             />
           ))}
           {items.length === 0 && (

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { subscribeToBoard } from '@/lib/data/realtime';
-import { updateItem, createItem } from '@/lib/data/boards';
+import { updateItem, createItem, setItemPositions } from '@/lib/data/boards';
 import { addSubitem, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
 import { savePrefs } from '@/lib/data/prefs';
 import GroupSection from './GroupSection';
@@ -51,6 +51,11 @@ export default function BoardGrid({ user, board, options, prefs }) {
   }));
 
   useEffect(() => { setTree(board); }, [board]);
+
+  const treeRef = useRef(tree);
+  useEffect(() => { treeRef.current = tree; }, [tree]);
+
+  const [dragItemId, setDragItemId] = useState(null);
 
   const cols = useMemo(() => resolveColumns(prefsState), [prefsState]);
 
@@ -138,6 +143,32 @@ export default function BoardGrid({ user, board, options, prefs }) {
       }));
     } catch (e) { console.error('createItem failed', e); }
   }, [sb, board.id]);
+
+  // ---- row drag between / within groups ----
+  const moveRow = useCallback((itemId, toGroupId, beforeItemId) => {
+    const cur = treeRef.current;
+    const fromGroup = cur.groups.find((g) => (g.items || []).some((it) => it.id === itemId));
+    if (!fromGroup) return;
+    const moved = fromGroup.items.find((it) => it.id === itemId);
+    if (beforeItemId === itemId) return;
+
+    let targetItems;
+    const groups = cur.groups.map((g) => {
+      let items = (g.items || []).filter((it) => it.id !== itemId);
+      if (g.id === toGroupId) {
+        const at = beforeItemId ? items.findIndex((it) => it.id === beforeItemId) : items.length;
+        items = [...items];
+        items.splice(at < 0 ? items.length : at, 0, { ...moved, group_id: toGroupId });
+        items = items.map((it, i) => ({ ...it, position: i }));
+        targetItems = items;
+      }
+      return { ...g, items };
+    });
+    if (!targetItems) return;
+    setTree({ ...cur, groups });
+    setItemPositions(sb, targetItems.map((it, i) => ({ id: it.id, position: i, group_id: toGroupId })))
+      .catch((e) => console.error('setItemPositions failed', e));
+  }, [sb]);
 
   // ---- subitem mutations (optimistic) ----
   const patchSubs = useCallback((itemId, fn) => {
@@ -279,6 +310,10 @@ export default function BoardGrid({ user, board, options, prefs }) {
               onAddSubitem={createSubitem}
               onDeleteSubitem={removeSubitem}
               onApplyChecklist={applyChecklist}
+              dragItemId={dragItemId}
+              onRowDragStart={setDragItemId}
+              onRowDragEnd={() => setDragItemId(null)}
+              onMoveRow={moveRow}
             />
           );
         })}

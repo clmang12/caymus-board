@@ -12,18 +12,31 @@ const Chevron = ({ open }) => (
 export default function ItemRow({
   item, cols, options, groupColor, onCommit, expanded, onToggleExpand,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
+  dragging, dropBefore, onDragStartRow, onDragEndRow, onDragOverRow, onDropRow,
 }) {
   const tmpl = gridTemplate(cols);
   const subs = item.subitems || [];
 
   return (
-    <div>
+    <div
+      className={'irow-wrap' + (dropBefore ? ' drop-before' : '')}
+      style={{ opacity: dragging ? 0.4 : 1 }}
+      onDragOver={(e) => { if (onDragOverRow) { e.preventDefault(); e.stopPropagation(); onDragOverRow(); } }}
+      onDrop={(e) => { if (onDropRow) { e.preventDefault(); e.stopPropagation(); onDropRow(); } }}
+    >
       <div className="irow" style={{ gridTemplateColumns: tmpl }}>
         {cols.map((col) => {
           if (col.key === 'name') {
             return (
               <div key="name" className="icell sticky" style={{ borderLeft: `5px solid ${groupColor}` }}>
                 <div className="name-cell" style={{ width: '100%' }}>
+                  <span
+                    className="row-drag"
+                    title="Drag to move deal"
+                    draggable
+                    onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStartRow(); }}
+                    onDragEnd={onDragEndRow}
+                  >⠿</span>
                   <button className="name-expand" title="Conditions" onClick={onToggleExpand}>
                     <Chevron open={expanded} />
                   </button>
