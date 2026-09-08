@@ -42,7 +42,7 @@ export default function Sidebar({ boards: initial, activeId, user }) {
   }
 
   const onNew = () => run(async () => {
-    const created = await createBoard(sb, { name: 'Untitled board' });
+    const created = await createBoard(sb, { name: 'Untitled board', fromBoardId: activeId });
     // stash intent so the freshly navigated Sidebar opens rename inline
     try { sessionStorage.setItem('caymus:renameBoard', created.id); } catch {}
     router.push('/board/' + created.id);
