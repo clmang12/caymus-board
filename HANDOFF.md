@@ -15,8 +15,9 @@ new Claude Code / Claude for VS Code window. Companion docs: `README.md`
 - Repo: https://github.com/clmang12/caymus-board (private). Branch `main`.
   As of this handoff: through `39b4916` (+ this doc commit), pushed, tree clean,
   prod deploy green. `git log --oneline -5` for the real HEAD.
-- **PORTING items 1 (board grid), 2 (inline editing), and 3 (subitem CRUD) are
-  DONE and deployed.** Everything in `components/board/`. Items 4–9 remain.
+- **PORTING items 1 (board grid), 2 (inline editing), 3 (subitem CRUD), and 4
+  (sidebar board CRUD + row drag) are DONE and deployed.** Board UI in
+  `components/board/`; sidebar is `components/Sidebar.jsx`. Items 5–9 remain.
 - Auth works end to end **except email delivery** (Supabase built-in SMTP is
   rate-limited; custom SMTP not set up — see "Signing in" below for the bypass).
 
@@ -26,8 +27,10 @@ new Claude Code / Claude for VS Code window. Companion docs: `README.md`
   menus + the new condition-status menu) rendered with no background because the
   design tokens were scoped to `.board-root` and `Popover` portals into
   `document.body`. Moved tokens to `:root`, added `.pop` fallbacks — `930c64c`.
-- Added headless dev scripts `scripts/_ui-test-item3.mjs`, `_ui-popover-shot.mjs`
-  (gitignored).
+- Shipped PORTING item 4 (sidebar board CRUD + drag rows between groups) —
+  `82b765c`, deployed.
+- Added headless dev scripts `scripts/_ui-test-item3.mjs`, `_ui-popover-shot.mjs`,
+  `_verify-boards.mjs`, `_ui-test-item4.mjs` (all gitignored).
 
 ---
 
@@ -136,9 +139,10 @@ admin access to `caymusmortgage.ca`, so a sending domain must be arranged
 - `ItemRow.jsx` — sticky Deal/Client column, 13 cells, expand → `SubitemPanel`
   (editable, see item 3 below) + progress bar.
 - `GroupSection.jsx` — collapsible group card, header row with drag-resize /
-  drag-reorder / click-sort, "+ Add deal", volume SUM row.
+  drag-reorder / click-sort, "+ Add deal", volume SUM row, row drop targets.
 - `BoardGrid.jsx` — toolbar (search, collapse-all), realtime merge for
-  items/subitems/groups, optimistic commits, prefs persistence (debounced).
+  items/subitems/groups, optimistic commits, prefs persistence (debounced),
+  `moveRow` (drag rows between/within groups → `setItemPositions`).
 - `app/board/[boardId]/page.js` loads `user_prefs`; `BoardShell.jsx` is now a
   thin sidebar+grid layout.
 
@@ -164,15 +168,35 @@ exceptions.
   the open grid; popover renders opaque; no console errors. `scripts/_verify.mjs`
   covers the data layer (16 checks).
 
+### PORTING item 4 — sidebar board CRUD + row drag (commit `82b765c`)
+- `components/Sidebar.jsx` — was a stub, now a client component. "+ New board"
+  (creates board + starter "Deals" group, navigates, opens inline rename via a
+  `sessionStorage` intent that survives the nav). Per-board ⋯ menu: Rename
+  (inline `<input>`), Duplicate, Delete (`window.confirm`, soft-delete). Drag a
+  row to reorder — persists globally via `reorderBoards`. Optimistic local list
+  + `router.refresh()` (boards table is **not** in the realtime publication, so
+  no cross-session push — a later nicety).
+- `lib/data/boards.js` — `createBoard`, `duplicateBoard` (deep copy, client-gen
+  UUIDs so parent refs remap with no round trips; sits right after the original),
+  `deleteBoard` (tree → `trash`, refuses last board), `setItemPositions`.
+  `reorderBoards` rewritten as sequential `UPDATE`s (upsert took the INSERT path
+  → NOT NULL `name`).
+- Board grid: `.row-drag` handle in the sticky name cell (hover to reveal); drop
+  on a row inserts before it, drop on a group body appends. `BoardGrid.moveRow`
+  updates the tree and renumbers the target group; the existing `items` realtime
+  handler already reconciles `group_id` changes.
+- Verified: `scripts/_verify-boards.mjs` (12 data-layer checks, self-cleaning),
+  `scripts/_ui-test-item4.mjs` (headless: create/rename/duplicate/delete +
+  synthetic row-drop; restores the live seed board after).
+
 ---
 
 ## What's NOT done (next work)
 
-From `PORTING.md`, remaining order **4 → 7 → 5 → 6 → 8 → 9**:
+From `PORTING.md`, remaining order **7 → 5 → 6 → 8 → 9**:
 
 | # | Item | Notes |
 |---|---|---|
-| 4 | Sidebar board CRUD + drag rows between groups | `Sidebar.jsx` is still the minimal stub. `lib/data/boards.js` has `listBoards` / `reorderBoards` / `renameBoard` / `duplicateBoard` / `deleteBoard` (soft-delete into `trash`). Also drag an item row between groups — `moveItem` exists; realtime `items` handler already moves a row when `group_id` changes. |
 | 5 | Server-side notifications | Prototype computes them client-side each load. Replace with a Supabase `pg_cron` daily job that inserts into `notifications`; `lib/data/notifications.js` already reads / marks read / clears. |
 | 6 | AI assistant drawer | Route `POST /api/claude` is done (key server-side). **Blocked:** `ANTHROPIC_API_KEY` is rejected as invalid — regenerate before building this. Prototype's drawer + `actions` JSON protocol is in `design-reference/CAYMUS 25 Board.dc.html` (~line 1280). |
 | 7 | File attachments | `lib/data/attachments.js` + the private `attachments` bucket are both ready; no UI. Signed URLs for download. `attachments` rows can hang off an item or a subitem. |
@@ -199,10 +223,14 @@ reference. Match its tokens/behaviour with React.
 - **Design tokens live on `:root`** in `board.css` (not `.board-root`) — the
   `Popover` portals into `document.body`, so scoping `--s1` etc. to `.board-root`
   made every popover render transparent. `.pop` also has literal fallbacks.
+- **Boards realtime**: `boards` is NOT in `supabase_realtime` (only items /
+  subitems / groups / updates are). Sidebar board changes don't push to other
+  sessions — fine for now; add the table + a `subscribeToBoards` if needed.
 - **Local dev helper scripts** `scripts/_*.mjs` are gitignored (contain admin
   logic): `_mint-session`, `_verify` (data-layer suite — `node scripts/_verify.mjs`,
-  16 checks, self-cleaning), `_verify-realtime`, `_vercel-setup`, `_vercel-fix`,
-  `_ui-test-item3` (headless subitem-CRUD check), `_ui-popover-shot`.
+  16 checks, self-cleaning), `_verify-boards` (item-4 data layer, 12 checks),
+  `_verify-realtime`, `_vercel-setup`, `_vercel-fix`, `_ui-test-item3`,
+  `_ui-test-item4`, `_ui-popover-shot` (headless CDP checks).
 - **Vercel API access**: the user supplied a temporary `VERCEL_TOKEN` once (used
   to set env vars + redeploy), then removed it. Not available now — ask if you
   need to touch Vercel programmatically; otherwise a `git push` auto-deploys.

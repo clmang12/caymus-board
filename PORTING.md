@@ -28,11 +28,15 @@ date / details / delete, "+ Add condition", empty-state Purch|Refi checklist
 buttons. Optimistic writes in \`BoardGrid.jsx\`, reconciled by the \`subitems\`
 realtime handler.
 
-## 4. Multiple boards + sidebar
+## 4. Multiple boards + sidebar — DONE (commit 82b765c)
 Prototype: sidebar list, drag to reorder, rename, duplicate, delete.
-Data: \`listBoards\`, \`reorderBoards\`, \`renameBoard\`, \`duplicateBoard\`,
-\`deleteBoard\` (soft delete into \`trash\`).
-Build: \`components/Sidebar.jsx\`. Board order is global, not per-user.
+Data: \`listBoards\`, \`reorderBoards\` (sequential UPDATEs), \`renameBoard\`,
+\`createBoard\`, \`duplicateBoard\` (deep copy, client-gen UUIDs), \`deleteBoard\`
+(soft delete into \`trash\`, refuses last board), \`setItemPositions\`.
+Built: \`components/Sidebar.jsx\` (interactive; "+ New board", ⋯ menu). Board
+order is global. Also: drag deal rows between/within groups — handle in the name
+cell, \`BoardGrid.moveRow\`. Boards table is not in realtime (no cross-session
+sidebar sync yet).
 
 ## 5. Notifications
 Prototype: computed client-side from dates on every load, dismissals kept in
@@ -64,7 +68,7 @@ as notifications. \`automations\` stores which are enabled per board.
 
 ## Suggested order
 1, 2, 4 first — that gets you a usable app. Then 3, 7, 5, 6, 8, 9.
-Done so far: 1, 2, 3. Remaining: 4, 7, 5, 6, 8, 9.
+Done so far: 1, 2, 3, 4. Remaining: 7, 5, 6, 8, 9.
 
 ## Working with Claude Code
 From the repo root:
