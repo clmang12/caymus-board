@@ -31,7 +31,8 @@ realtime handler.
 ## 4. Multiple boards + sidebar — DONE (commit 82b765c)
 Prototype: sidebar list, drag to reorder, rename, duplicate, delete.
 Data: \`listBoards\`, \`reorderBoards\` (sequential UPDATEs), \`renameBoard\`,
-\`createBoard\`, \`duplicateBoard\` (deep copy, client-gen UUIDs), \`deleteBoard\`
+\`createBoard({name, fromBoardId})\` (copies group structure + options + templates,
+no deals), \`duplicateBoard\` (deep copy, client-gen UUIDs), \`deleteBoard\`
 (soft delete into \`trash\`, refuses last board), \`setItemPositions\`.
 Built: \`components/Sidebar.jsx\` (interactive; "+ New board", ⋯ menu). Board
 order is global. Also: drag deal rows between/within groups — handle in the name

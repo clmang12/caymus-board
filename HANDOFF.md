@@ -170,13 +170,15 @@ exceptions.
 
 ### PORTING item 4 — sidebar board CRUD + row drag (commit `82b765c`)
 - `components/Sidebar.jsx` — was a stub, now a client component. "+ New board"
-  (creates board + starter "Deals" group, navigates, opens inline rename via a
+  (creates a board that copies the current board's groups + field_options +
+  checklist templates — no deals — navigates, opens inline rename via a
   `sessionStorage` intent that survives the nav). Per-board ⋯ menu: Rename
   (inline `<input>`), Duplicate, Delete (`window.confirm`, soft-delete). Drag a
   row to reorder — persists globally via `reorderBoards`. Optimistic local list
   + `router.refresh()` (boards table is **not** in the realtime publication, so
   no cross-session push — a later nicety).
-- `lib/data/boards.js` — `createBoard`, `duplicateBoard` (deep copy, client-gen
+- `lib/data/boards.js` — `createBoard({ name, fromBoardId })` (copies group
+  structure + options + templates, no deals), `duplicateBoard` (deep copy, client-gen
   UUIDs so parent refs remap with no round trips; sits right after the original),
   `deleteBoard` (tree → `trash`, refuses last board), `setItemPositions`.
   `reorderBoards` rewritten as sequential `UPDATE`s (upsert took the INSERT path
