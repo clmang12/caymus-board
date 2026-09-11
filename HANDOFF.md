@@ -1,9 +1,10 @@
 # HANDOFF — CAYMUS Board
 
-Session state as of 2026-09-11 (session 3). Read this first when resuming in a
-new Claude Code / Claude for VS Code window. Companion docs: `README.md`
-(overview), `PORTING.md` (remaining UI work, numbered), `DEPLOY.md` (Vercel),
-`SMTP-SETUP.md` (email), `design-reference/README.md` (design spec + tokens).
+Session state as of 2026-09-11 (session 3, continued). Read this first when
+resuming in a new Claude Code / Claude for VS Code window. Companion docs:
+`README.md` (overview), `PORTING.md` (all 9 items — now done, see below),
+`DEPLOY.md` (Vercel), `SMTP-SETUP.md` (email), `design-reference/README.md`
+(design spec + tokens).
 
 ---
 
@@ -13,30 +14,106 @@ new Claude Code / Claude for VS Code window. Companion docs: `README.md`
   Supabase**, deployed on **Vercel**.
 - **Live:** https://caymus-board.vercel.app — auto-deploys from `main` on every push.
 - Repo: https://github.com/clmang12/caymus-board (private). Branch `main`.
-  As of this handoff: through `dba0eb4`, pushed, tree clean, prod deploy green.
+  As of this handoff: through `9f1efb8`, pushed, tree clean, prod deploy green.
   `git log --oneline -5` for the real HEAD.
-- **PORTING items 1 (board grid), 2 (inline editing), 3 (subitem CRUD), 4
-  (sidebar board CRUD + row drag), and 7 (file attachments) are DONE and
-  deployed.** Board UI in `components/board/`; sidebar is
-  `components/Sidebar.jsx`. Remaining, in suggested order: 5, 6, 8, 9.
+- **All 9 PORTING.md items are DONE and deployed**: board grid, inline
+  editing, subitem CRUD, sidebar board CRUD + row drag, notifications,
+  AI assistant drawer, file attachments, mobile card view, automations.
+  Board UI in `components/board/`; sidebar is `components/Sidebar.jsx`.
 - Auth works end to end **except email delivery** (Supabase built-in SMTP is
   rate-limited; custom SMTP not set up — see "Signing in" below for the bypass).
+- **One open blocker**: `ANTHROPIC_API_KEY` (.env.local + Vercel) is rejected
+  by Anthropic as invalid — the AI drawer (item 6) is fully built and wired
+  but can't complete a real request until it's regenerated at
+  console.anthropic.com. Everything short of that boundary is verified (see
+  below).
+- Not started, and intentionally outside the 9-item PORTING.md scope: dark
+  theme, a filter menu, undo, and a trash/restore view (soft-deleted boards
+  land in the `trash` table with no UI to browse or restore them).
 
-### This session (2026-09-11, session 3)
-- Shipped PORTING item 7 (file attachments) — `dba0eb4`, deployed. New
-  `components/board/AttachmentsPanel.jsx`: a "Files" box below the conditions
-  checklist in the expanded row — upload (hidden `<input type=file>` behind
-  "+ Add file"), list (name/size/date), download via a short-lived signed URL,
-  delete (removes the DB row and the storage object). Wired lazily through
-  `BoardGrid.jsx` (`attachmentsByItem` state, fetched on first expand — not
-  eagerly joined into `getBoardTree` and not in the realtime publication, same
-  tradeoff as boards) → `GroupSection.jsx` → `ItemRow.jsx`. Reused `lib/data/attachments.js`
-  and the already-provisioned `attachments` table + private bucket + RLS/storage
-  policies (all from initial infra setup — no schema or Supabase changes needed).
-- Verified headless (Chrome + CDP, live DB, `scripts/_ui-test-item7.mjs`, 15
-  checks): upload persists (DB row + storage object, correct size/mime),
-  signed URL actually serves the uploaded bytes, delete removes DB row + storage
-  object + UI row, no console errors.
+### This session (2026-09-11, session 3 continued) — items 5, 9, 8, 6
+Picked in that order: 5 and 9 are both server-side Postgres work (natural to
+do together), 8 is self-contained frontend, 6 was saved for last since it's
+blocked on an external dependency (the API key) I can't resolve myself.
+
+**Item 9 (automations) + item 5 (notifications)** — commit `a935aa8`.
+`supabase/schema.sql` gained: `automation_enabled(board_id, key)` (a missing
+row defaults to **enabled**, matching the prototype where everything starts
+on) and `find_group_id(board_id, title)` helpers; `items_automations` /
+`subitems_automations` triggers (BEFORE UPDATE, so a group move just mutates
+NEW — no extra statement, no self-trigger loop) implementing all 11
+structural automations (move deal on status/broker/compliance change, post
+canned updates, stamp a subitem's date when its condition changes); and
+`generate_notifications()` implementing the 3 notify rules (submitted
+follow-up, closing today, instruct-reminder within 10 days), broadcast to
+every profile and deduped via the existing `unique(user_id, dedupe_key)`.
+Scheduled daily via `pg_cron` (`0 12 * * *`). `scripts/apply-schema.mjs` now
+splits `schema.sql` on a `-- ==CRON==` marker and applies the cron section as
+its **own** statement batch — Postgres runs a multi-statement simple-query
+string as one implicit transaction, so if pg_cron isn't enabled on a given
+Supabase plan, that failure must not roll back the trigger DDL that ran
+before it. Also had to make the `alter publication supabase_realtime add
+table ...` lines idempotent (wrapped in a `do $$ ... exception when
+duplicate_object$$` block) — turns out `schema.sql` had never actually been
+re-run end-to-end since initial setup; that line was the first thing to break
+on a second run. New UI: "⚡ Automations" toolbar button → toggle panel
+(`AutomationsPanel.jsx` + `lib/data/automations.js` + `automationDefs.js`),
+and a bell icon (`NotificationsBell.jsx`) using the already-written
+`lib/data/notifications.js`. Verified: `scripts/_verify-automations.mjs` (14
+checks: each automation actually fires/doesn't fire, notifications are
+idempotent and respect toggles, the pg_cron job is scheduled and active) +
+`scripts/_ui-test-item5-9.mjs` (9 headless checks).
+
+**Item 8 (mobile card view)** — commit `7794cdf`. Below 768px (checked via
+`window.matchMedia`, not CSS alone — the grid and cards are genuinely
+different DOM, not a squeezed version of one), `BoardGrid.jsx` renders
+`BoardCards.jsx` (collapsible groups of compact deal cards) instead of
+`GroupSection`. Tapping a card opens `ItemDetailSheet.jsx`, which reuses the
+desktop grid's own `Cell`, `SubitemPanel`, and `AttachmentsPanel` components
+stacked into one scrollable form — mobile editing/conditions/files go through
+the exact same code paths as desktop. `BoardShell.jsx` gained a hamburger
+topbar + off-canvas sidebar drawer for mobile (the permanent 240px sidebar
+has nowhere to go on a phone). **Gotcha that cost a debug round-trip**: the
+first version put the mobile topbar as a row-flex sibling of the sidebar
+inside `.board-root`; since board-root is `display:flex` with no
+flex-direction override, the topbar sized to its content instead of
+stacking above the grid, silently splitting the viewport in half. Fixed by
+wrapping the topbar + `BoardGrid` in a `.board-main-wrap` column container.
+Caught by comparing `getBoundingClientRect()` of `.board-main` against the
+emulated viewport width in a throwaway debug script — worth doing again if a
+mobile layout looks subtly wrong; screenshots alone didn't make the cause
+obvious. Verified at a 390×844 viewport: `scripts/_ui-test-item8.mjs` (13
+checks — cards render instead of the grid, drawer opens/closes, tap → sheet
+with all 13 fields + conditions + files, an inline edit persists).
+
+**Item 6 (AI assistant drawer)** — commit `9f1efb8`. Right-side drawer
+(`AiPanel.jsx`) sends the full board tree + an "actions" grammar
+(`lib/ai/prompt.js`) as the system prompt to the already-existing
+`POST /api/claude` route (bumped its model to `claude-sonnet-5`). Ported the
+prototype's action protocol but trimmed to 7 types this app can actually
+execute against its schema — `set_field`, `bulk_set_field`, `set_condition`,
+`add_condition`, `move_deal`, `add_deal`, `post_update` — dropping
+`send_client_update` (no email-sending integration exists) and
+`order_appraisal` (redundant with `set_field` on appraisal/appraiser).
+`lib/ai/applyActions.js` executes approved actions through the same
+`lib/data/*` functions the rest of the app already uses, so applied changes
+flow through `BoardGrid.jsx`'s existing realtime subscription instead of
+needing bespoke optimistic-UI wiring. **Still blocked**: confirmed directly
+against the Messages API that `ANTHROPIC_API_KEY` is still rejected as
+invalid — regenerate it, then re-run `scripts/_ui-test-item6.mjs` to confirm
+an actual completion + action apply (right now it only verifies the request
+fires and the resulting error surfaces correctly in the panel, rather than
+hanging or crashing). Also verified the action dispatch/parsing logic
+directly against the live DB, independent of the API call:
+`scripts/_verify-ai-actions.mjs` (15 checks).
+
+**Also fixed**: `npm run build` (production) and `npm run dev` must not run
+concurrently against the same `.next` directory — doing so mid-session
+corrupted the dev server's webpack runtime ("Cannot find module './948.js'"),
+which looked like a React crash until `document.body.innerHTML` was
+inspected directly and it turned out to be a Next.js 500 page. Fix is just
+`rm -rf .next` + restart `npm run dev` after any `npm run build` run while
+dev is up.
 
 ### Prior session (2026-09-07, session 2)
 - Shipped PORTING item 3 (subitem CRUD) — `1663a35`, deployed.
@@ -230,22 +307,42 @@ exceptions.
   delete removes the DB row, the storage object, and the UI row; no console
   errors.
 
+### PORTING item 9 + item 5 — automations + notifications (commit `a935aa8`)
+See "This session" above for the full writeup. Files: `supabase/schema.sql`
+(`automation_enabled`, `find_group_id`, `items_automations` /
+`subitems_automations` triggers, `generate_notifications`, pg_cron schedule),
+`lib/data/automations.js`, `components/board/automationDefs.js`,
+`components/board/AutomationsPanel.jsx`, `components/board/NotificationsBell.jsx`.
+
+### PORTING item 8 — mobile card view (commit `7794cdf`)
+See "This session" above. Files: `components/board/BoardCards.jsx`,
+`components/board/ItemDetailSheet.jsx`, `components/BoardShell.jsx` (hamburger
+topbar + drawer), `.board-main-wrap` / `.cards-*` / `.deal-card*` /
+`.msheet-*` in `board.css`.
+
+### PORTING item 6 — AI assistant drawer (commit `9f1efb8`)
+See "This session" above. Files: `components/board/AiPanel.jsx`,
+`lib/ai/prompt.js`, `lib/ai/applyActions.js`, `app/api/claude/route.js`
+(model bumped to `claude-sonnet-5`). **Needs a fresh `ANTHROPIC_API_KEY`**
+before it can complete a real request — see the open blocker at the top.
+
 ---
 
 ## What's NOT done (next work)
 
-From `PORTING.md`, remaining order **5 → 6 → 8 → 9**:
+**All 9 PORTING.md items are done.** What's left is explicitly outside that
+numbered scope:
 
-| # | Item | Notes |
-|---|---|---|
-| 5 | Server-side notifications | Prototype computes them client-side each load. Replace with a Supabase `pg_cron` daily job that inserts into `notifications`; `lib/data/notifications.js` already reads / marks read / clears. |
-| 6 | AI assistant drawer | Route `POST /api/claude` is done (key server-side). **Blocked:** `ANTHROPIC_API_KEY` is rejected as invalid — regenerate before building this. Prototype's drawer + `actions` JSON protocol is in `design-reference/CAYMUS 25 Board.dc.html` (~line 1280). |
-| 8 | Mobile card view <768px | Build `components/board/BoardCards.jsx` — one card per deal, tap → detail sheet. Do **not** make the 14-col grid responsive. |
-| 9 | Automations | Postgres triggers / scheduled fns; `automations` table stores which are enabled per board. e.g. prototype's "stamp condition date when its status changes". |
+| Item | Notes |
+|---|---|
+| Dark theme | Prototype has the dark token set; `board.css` is light-only. Tokens are already on `:root`, so a `@media (prefers-color-scheme)` block or a toggle (persisted via `user_prefs`, which already has a `prefs` jsonb column) is straightforward. |
+| Filter menu | Prototype has an agent/lender filter in the toolbar (see `design-reference/CAYMUS 25 Board.dc.html`, `filterAgent`/`filterLender` state). Not built — search is the only filter today. |
+| Undo | Prototype keeps a full undo stack client-side. Not attempted here — retrofitting undo onto server-authoritative state (multi-user, realtime) is a materially different problem than the prototype's single-user localStorage undo, and needs a deliberate design pass (event log? Postgres history table?) rather than a port. |
+| Trash / restore view | `deleteBoard` already soft-deletes into the `trash` table (`payload` jsonb holds the full board tree), but there's no UI to browse or restore from it. |
 
-Also not started: dark theme (prototype has the dark token set; `board.css` is
-light-only, tokens now on `:root` so a `@media (prefers-color-scheme)` / toggle
-override is straightforward), filter menu, undo, trash/restore view.
+Also still open: the `ANTHROPIC_API_KEY` blocker on item 6 (see top of this
+file) — the only thing separating "built" from "verified working" on that
+item.
 
 Do **not** copy `design-reference/CAYMUS 25 Board.dc.html` into the app — it's a
 reference. Match its tokens/behaviour with React.
@@ -270,7 +367,9 @@ reference. Match its tokens/behaviour with React.
   logic): `_mint-session`, `_verify` (data-layer suite — `node scripts/_verify.mjs`,
   16 checks, self-cleaning), `_verify-boards` (item-4 data layer, 12 checks),
   `_verify-realtime`, `_vercel-setup`, `_vercel-fix`, `_ui-test-item3`,
-  `_ui-test-item4`, `_ui-test-item7`, `_ui-popover-shot` (headless CDP checks).
+  `_ui-test-item4`, `_ui-test-item7`, `_ui-popover-shot`,
+  `_verify-automations`, `_ui-test-item5-9`, `_ui-test-item8`,
+  `_verify-ai-actions`, `_ui-test-item6` (headless CDP checks).
 - **Vercel API access**: the user supplied a temporary `VERCEL_TOKEN` once (used
   to set env vars + redeploy), then removed it. Not available now — ask if you
   need to touch Vercel programmatically; otherwise a `git push` auto-deploys.
