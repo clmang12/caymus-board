@@ -52,10 +52,14 @@ Prototype: a drawer posting to the local Express backend.
 Now: POST \`/api/claude\`. The route is done and reads the API key server-side —
 the key must never reach the browser.
 
-## 7. File attachments
+## 7. File attachments — DONE (commit dba0eb4)
 Prototype: file names held in memory only.
 Data: \`lib/data/attachments.js\` uploads to the \`attachments\` bucket and rows
 into \`attachments\`. Use signed URLs for download; the bucket is private.
+Built: \`components/board/AttachmentsPanel.jsx\` — a "Files" box below the
+conditions checklist in the expanded row (upload, list, signed-URL download,
+delete). Lazy-loaded per item on first expand (not in \`getBoardTree\` or
+realtime).
 
 ## 8. Mobile-friendly view
 Below 768px, render \`components/board/BoardCards.jsx\` instead of the grid — one
@@ -69,7 +73,7 @@ as notifications. \`automations\` stores which are enabled per board.
 
 ## Suggested order
 1, 2, 4 first — that gets you a usable app. Then 3, 7, 5, 6, 8, 9.
-Done so far: 1, 2, 3, 4. Remaining: 7, 5, 6, 8, 9.
+Done so far: 1, 2, 3, 4, 7. Remaining: 5, 6, 8, 9.
 
 ## Working with Claude Code
 From the repo root:

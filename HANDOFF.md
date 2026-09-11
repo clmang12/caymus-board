@@ -1,6 +1,6 @@
 # HANDOFF — CAYMUS Board
 
-Session state as of 2026-09-07 (session 2). Read this first when resuming in a
+Session state as of 2026-09-11 (session 3). Read this first when resuming in a
 new Claude Code / Claude for VS Code window. Companion docs: `README.md`
 (overview), `PORTING.md` (remaining UI work, numbered), `DEPLOY.md` (Vercel),
 `SMTP-SETUP.md` (email), `design-reference/README.md` (design spec + tokens).
@@ -13,15 +13,32 @@ new Claude Code / Claude for VS Code window. Companion docs: `README.md`
   Supabase**, deployed on **Vercel**.
 - **Live:** https://caymus-board.vercel.app — auto-deploys from `main` on every push.
 - Repo: https://github.com/clmang12/caymus-board (private). Branch `main`.
-  As of this handoff: through `39b4916` (+ this doc commit), pushed, tree clean,
-  prod deploy green. `git log --oneline -5` for the real HEAD.
-- **PORTING items 1 (board grid), 2 (inline editing), 3 (subitem CRUD), and 4
-  (sidebar board CRUD + row drag) are DONE and deployed.** Board UI in
-  `components/board/`; sidebar is `components/Sidebar.jsx`. Items 5–9 remain.
+  As of this handoff: through `dba0eb4`, pushed, tree clean, prod deploy green.
+  `git log --oneline -5` for the real HEAD.
+- **PORTING items 1 (board grid), 2 (inline editing), 3 (subitem CRUD), 4
+  (sidebar board CRUD + row drag), and 7 (file attachments) are DONE and
+  deployed.** Board UI in `components/board/`; sidebar is
+  `components/Sidebar.jsx`. Remaining, in suggested order: 5, 6, 8, 9.
 - Auth works end to end **except email delivery** (Supabase built-in SMTP is
   rate-limited; custom SMTP not set up — see "Signing in" below for the bypass).
 
-### This session (2026-09-07, session 2)
+### This session (2026-09-11, session 3)
+- Shipped PORTING item 7 (file attachments) — `dba0eb4`, deployed. New
+  `components/board/AttachmentsPanel.jsx`: a "Files" box below the conditions
+  checklist in the expanded row — upload (hidden `<input type=file>` behind
+  "+ Add file"), list (name/size/date), download via a short-lived signed URL,
+  delete (removes the DB row and the storage object). Wired lazily through
+  `BoardGrid.jsx` (`attachmentsByItem` state, fetched on first expand — not
+  eagerly joined into `getBoardTree` and not in the realtime publication, same
+  tradeoff as boards) → `GroupSection.jsx` → `ItemRow.jsx`. Reused `lib/data/attachments.js`
+  and the already-provisioned `attachments` table + private bucket + RLS/storage
+  policies (all from initial infra setup — no schema or Supabase changes needed).
+- Verified headless (Chrome + CDP, live DB, `scripts/_ui-test-item7.mjs`, 15
+  checks): upload persists (DB row + storage object, correct size/mime),
+  signed URL actually serves the uploaded bytes, delete removes DB row + storage
+  object + UI row, no console errors.
+
+### Prior session (2026-09-07, session 2)
 - Shipped PORTING item 3 (subitem CRUD) — `1663a35`, deployed.
 - Fixed a transparent-popover bug — every `Popover` (Agent/Status/Lender cell
   menus + the new condition-status menu) rendered with no background because the
@@ -191,17 +208,38 @@ exceptions.
   `scripts/_ui-test-item4.mjs` (headless: create/rename/duplicate/delete +
   synthetic row-drop; restores the live seed board after).
 
+### PORTING item 7 — file attachments (commit `dba0eb4`)
+- `components/board/AttachmentsPanel.jsx` (new) — "Files" box rendered below
+  `SubitemPanel` in the expanded row. Header shows count + "+ Add file"
+  (reveals a hidden `<input type=file multiple>`); rows show filename (click
+  to download), size, date, and a delete `✕` (reuses `.sub-del`). Empty /
+  loading states.
+- `BoardGrid.jsx` — attachments are **not** part of `getBoardTree` and **not**
+  in the realtime publication (same tradeoff as boards, see Gotchas). Lazy
+  state `attachmentsByItem` (keyed by item id) + `attachmentsLoaded` ref guard
+  fetch on first expand via `toggleExpand`. `uploadAttachmentFor` /
+  `removeAttachmentFor` are optimistic (patch local state, fire the Supabase
+  call); `downloadAttachment` calls `getDownloadUrl` for a fresh signed URL
+  then clicks a throwaway `<a download>`.
+- No schema/Supabase changes — `attachments` table, private bucket, and RLS +
+  storage policies were already provisioned during initial infra setup;
+  `lib/data/attachments.js` was already written and untouched.
+- Verified (headless Chrome + CDP, live DB, `scripts/_ui-test-item7.mjs`, 15
+  checks, self-cleaning): upload → DB row + storage object with correct
+  size/mime; signed URL fetched over HTTP actually returns the uploaded bytes;
+  delete removes the DB row, the storage object, and the UI row; no console
+  errors.
+
 ---
 
 ## What's NOT done (next work)
 
-From `PORTING.md`, remaining order **7 → 5 → 6 → 8 → 9**:
+From `PORTING.md`, remaining order **5 → 6 → 8 → 9**:
 
 | # | Item | Notes |
 |---|---|---|
 | 5 | Server-side notifications | Prototype computes them client-side each load. Replace with a Supabase `pg_cron` daily job that inserts into `notifications`; `lib/data/notifications.js` already reads / marks read / clears. |
 | 6 | AI assistant drawer | Route `POST /api/claude` is done (key server-side). **Blocked:** `ANTHROPIC_API_KEY` is rejected as invalid — regenerate before building this. Prototype's drawer + `actions` JSON protocol is in `design-reference/CAYMUS 25 Board.dc.html` (~line 1280). |
-| 7 | File attachments | `lib/data/attachments.js` + the private `attachments` bucket are both ready; no UI. Signed URLs for download. `attachments` rows can hang off an item or a subitem. |
 | 8 | Mobile card view <768px | Build `components/board/BoardCards.jsx` — one card per deal, tap → detail sheet. Do **not** make the 14-col grid responsive. |
 | 9 | Automations | Postgres triggers / scheduled fns; `automations` table stores which are enabled per board. e.g. prototype's "stamp condition date when its status changes". |
 
@@ -232,7 +270,7 @@ reference. Match its tokens/behaviour with React.
   logic): `_mint-session`, `_verify` (data-layer suite — `node scripts/_verify.mjs`,
   16 checks, self-cleaning), `_verify-boards` (item-4 data layer, 12 checks),
   `_verify-realtime`, `_vercel-setup`, `_vercel-fix`, `_ui-test-item3`,
-  `_ui-test-item4`, `_ui-popover-shot` (headless CDP checks).
+  `_ui-test-item4`, `_ui-test-item7`, `_ui-popover-shot` (headless CDP checks).
 - **Vercel API access**: the user supplied a temporary `VERCEL_TOKEN` once (used
   to set env vars + redeploy), then removed it. Not available now — ask if you
   need to touch Vercel programmatically; otherwise a `git push` auto-deploys.
