@@ -13,6 +13,7 @@ import AutomationsPanel from './AutomationsPanel';
 import NotificationsBell from './NotificationsBell';
 import BoardCards from './BoardCards';
 import ItemDetailSheet from './ItemDetailSheet';
+import AiPanel from './AiPanel';
 import { resolveColumns, DEFAULT_ORDER } from './columns';
 import './board.css';
 
@@ -78,6 +79,7 @@ export default function BoardGrid({ user, board, options, prefs }) {
     return () => mq.removeEventListener('change', onChange);
   }, []);
   const [detailItemId, setDetailItemId] = useState(null);
+  const [aiOpen, setAiOpen] = useState(false);
 
   // ---- persistence (debounced) ----
   const saveTimer = useRef(null);
@@ -402,6 +404,7 @@ export default function BoardGrid({ user, board, options, prefs }) {
           </div>
           <button className="board-btn" onClick={collapseAll}>{allCollapsed ? 'Expand all' : 'Collapse all'}</button>
           <button className="board-btn" onClick={() => setAutomationsOpen(true)}>⚡ Automations</button>
+          <button className="board-btn" onClick={() => setAiOpen(true)}>✨ AI Assistant</button>
           <NotificationsBell
             notifications={notifications}
             onDismiss={dismissOneNotification}
@@ -477,6 +480,17 @@ export default function BoardGrid({ user, board, options, prefs }) {
           enabledMap={automations}
           onToggle={toggleAutomation}
           onClose={() => setAutomationsOpen(false)}
+        />
+      )}
+
+      {aiOpen && (
+        <AiPanel
+          sb={sb}
+          tree={tree}
+          boardId={board.id}
+          options={options}
+          userId={user.id}
+          onClose={() => setAiOpen(false)}
         />
       )}
     </main>

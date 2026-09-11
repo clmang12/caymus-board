@@ -26,7 +26,7 @@ export async function POST(request) {
 
   try {
     const result = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-5',
       max_tokens,
       system,
       messages: messages ?? [{ role: 'user', content: prompt }]
