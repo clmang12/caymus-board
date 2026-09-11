@@ -240,10 +240,186 @@ create policy attachments_team on storage.objects
   using (bucket_id = 'attachments') with check (bucket_id = 'attachments');
 
 -- ---------------------------------------------------------------- realtime
-alter publication supabase_realtime add table items;
-alter publication supabase_realtime add table subitems;
-alter publication supabase_realtime add table groups;
-alter publication supabase_realtime add table updates;
+do $$
+declare t text;
+begin
+  foreach t in array array['items','subitems','groups','updates'] loop
+    begin
+      execute format('alter publication supabase_realtime add table %I', t);
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;
+
+-- ------------------------------------------------------------- automations
+-- Board-level on/off switches. A missing row for (board_id, key) means "on" —
+-- matches the prototype, where every automation defaults enabled — so a board
+-- works out of the box with no seeding; unchecking a toggle writes an explicit
+-- enabled=false row.
+create or replace function automation_enabled(p_board_id uuid, p_key text) returns boolean
+language sql stable as $$
+  select coalesce((select enabled from automations where board_id = p_board_id and key = p_key), true);
+$$;
+
+create or replace function find_group_id(p_board_id uuid, p_title text) returns uuid
+language sql stable as $$
+  select id from groups where board_id = p_board_id and title = p_title limit 1;
+$$;
+
+-- Structural automations (PORTING item 9): move deals between groups and post
+-- canned updates when tracked fields change. Runs BEFORE UPDATE so a group
+-- move is just part of the same row write (no extra statement, no risk of a
+-- self-triggering loop).
+create or replace function items_automations() returns trigger
+language plpgsql as $$
+declare
+  target_group uuid;
+  lender_txt   text;
+begin
+  lender_txt := coalesce(array_to_string(new.lender, ', '), '');
+
+  if new.status is distinct from old.status then
+    if new.status = 'Submitted' then
+      if automation_enabled(new.board_id, 'moveSubmitted') then
+        target_group := find_group_id(new.board_id, 'Submitted');
+        if target_group is not null then new.group_id := target_group; end if;
+      end if;
+      if automation_enabled(new.board_id, 'updateSubmitted') then
+        insert into updates (item_id, body) values (new.id, new.name || ' submitted to ' || lender_txt);
+      end if;
+    elsif new.status = 'Approved' then
+      if automation_enabled(new.board_id, 'moveApproved') then
+        target_group := find_group_id(new.board_id, 'Active Deals');
+        if target_group is not null then new.group_id := target_group; end if;
+      end if;
+      if automation_enabled(new.board_id, 'updateApproved') then
+        insert into updates (item_id, body) values (new.id, 'Congrats — ' || new.name || ' has been approved!');
+      end if;
+    elsif new.status = 'Cancelled' then
+      if automation_enabled(new.board_id, 'moveCancelled') then
+        target_group := find_group_id(new.board_id, 'Cancelled');
+        if target_group is not null then new.group_id := target_group; end if;
+      end if;
+    end if;
+  end if;
+
+  if new.broker is distinct from old.broker and new.broker = 'Complete'
+     and automation_enabled(new.board_id, 'moveBroker') then
+    target_group := find_group_id(new.board_id, 'Broker Complete');
+    if target_group is not null then new.group_id := target_group; end if;
+  end if;
+
+  if new.compliance is distinct from old.compliance then
+    if new.compliance = 'Required' and automation_enabled(new.board_id, 'moveCompReq') then
+      target_group := find_group_id(new.board_id, 'Funded - Compliance Required');
+      if target_group is not null then new.group_id := target_group; end if;
+    elsif new.compliance = 'Done' and automation_enabled(new.board_id, 'moveCompDone') then
+      target_group := find_group_id(new.board_id, 'Funded - Compliance Done');
+      if target_group is not null then new.group_id := target_group; end if;
+    end if;
+  end if;
+
+  if new.appraisal is distinct from old.appraisal then
+    if new.appraisal = 'Ordered' and automation_enabled(new.board_id, 'updateApprOrdered') then
+      insert into updates (item_id, body) values (new.id, 'Appraisal ordered through ' || coalesce(new.appraiser, 'TBD'));
+    elsif new.appraisal = 'Completed' and automation_enabled(new.board_id, 'updateApprDone') then
+      insert into updates (item_id, body) values (new.id, 'Appraisal for ' || new.name || ' has been completed.');
+    end if;
+  end if;
+
+  return new;
+end; $$;
+
+drop trigger if exists items_automations_trg on items;
+create trigger items_automations_trg before update on items
+  for each row execute function items_automations();
+
+-- "When a subitem condition changes, set its date to the current date."
+create or replace function subitems_automations() returns trigger
+language plpgsql as $$
+declare
+  v_board_id uuid;
+begin
+  if new.cond is distinct from old.cond then
+    select board_id into v_board_id from items where id = new.item_id;
+    if v_board_id is not null and automation_enabled(v_board_id, 'subDateStamp') then
+      new.due_date := current_date;
+    end if;
+  end if;
+  return new;
+end; $$;
+
+drop trigger if exists subitems_automations_trg on subitems;
+create trigger subitems_automations_trg before update on subitems
+  for each row execute function subitems_automations();
+
+-- ------------------------------------------------------------ notifications
+-- PORTING item 5: generated server-side so they fire whether or not anyone
+-- has the board open. Broadcast to every profile (team-wide, same model as
+-- the rest of the app's RLS); the unique (user_id, dedupe_key) constraint
+-- makes re-running this daily idempotent.
+create or replace function generate_notifications() returns void
+language plpgsql as $$
+declare
+  r      record;
+  p      record;
+  lender_txt text;
+  msg    text;
+  dedupe text;
+  d_diff int;
+begin
+  for r in select * from items loop
+    lender_txt := coalesce(array_to_string(r.lender, ', '), '');
+
+    if r.status = 'Submitted' and automation_enabled(r.board_id, 'notifSubmitted') then
+      msg := r.name || ' — follow up with ' || lender_txt || ' on submission status';
+      dedupe := 'sub_' || r.id || '_' || current_date;
+      for p in select id from profiles loop
+        insert into notifications (user_id, item_id, board_id, kind, message, dedupe_key)
+        values (p.id, r.id, r.board_id, 'submitted_followup', msg, dedupe)
+        on conflict (user_id, dedupe_key) do nothing;
+      end loop;
+    end if;
+
+    if r.close_date is not null then
+      d_diff := r.close_date - current_date;
+
+      if d_diff = 0 and automation_enabled(r.board_id, 'notifClosing') then
+        msg := r.name || ' is closing today!';
+        dedupe := 'close_' || r.id || '_' || r.close_date;
+        for p in select id from profiles loop
+          insert into notifications (user_id, item_id, board_id, kind, message, dedupe_key)
+          values (p.id, r.id, r.board_id, 'closing_today', msg, dedupe)
+          on conflict (user_id, dedupe_key) do nothing;
+        end loop;
+      end if;
+
+      if d_diff between 1 and 10 and coalesce(r.instructed, 'NO') <> 'YES'
+         and automation_enabled(r.board_id, 'notifInstruct') then
+        msg := r.name || ' — closing ' || r.close_date || ' — confirm instructions are sent ASAP with ' || lender_txt || '!!';
+        dedupe := 'instr_' || r.id || '_' || r.close_date;
+        for p in select id from profiles loop
+          insert into notifications (user_id, item_id, board_id, kind, message, dedupe_key)
+          values (p.id, r.id, r.board_id, 'instruct_reminder', msg, dedupe)
+          on conflict (user_id, dedupe_key) do nothing;
+        end loop;
+      end if;
+    end if;
+  end loop;
+end; $$;
+
+-- ==CRON== everything below is applied as its own statement batch by
+-- scripts/apply-schema.mjs — pg_cron needs to be enabled per-project (some
+-- Supabase plans only allow that from the dashboard's Database > Extensions
+-- page), so a failure here must not roll back the automation/notification
+-- DDL above.
+create extension if not exists pg_cron;
+
+select cron.schedule(
+  'generate-notifications-daily',
+  '0 12 * * *', -- 12:00 UTC daily
+  $$select generate_notifications();$$
+);
 
 -- ---------------------------------------------------------------- ALLOWLIST
 -- Access is controlled by who exists in auth.users. Invite teammates under

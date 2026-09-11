@@ -5,8 +5,12 @@ import { subscribeToBoard } from '@/lib/data/realtime';
 import { updateItem, createItem, setItemPositions } from '@/lib/data/boards';
 import { addSubitem, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
 import { listAttachments, uploadAttachment, deleteAttachment, getDownloadUrl } from '@/lib/data/attachments';
+import { listAutomations, setAutomation } from '@/lib/data/automations';
+import { listNotifications, dismissNotification, dismissAll } from '@/lib/data/notifications';
 import { savePrefs } from '@/lib/data/prefs';
 import GroupSection from './GroupSection';
+import AutomationsPanel from './AutomationsPanel';
+import NotificationsBell from './NotificationsBell';
 import { resolveColumns, DEFAULT_ORDER } from './columns';
 import './board.css';
 
@@ -261,6 +265,35 @@ export default function BoardGrid({ user, board, options, prefs }) {
     } catch (e) { console.error('getDownloadUrl failed', e); }
   }, [sb]);
 
+  // ---- automations (item 9) + notifications (item 5) ----
+  const [automations, setAutomations] = useState({});
+  const [automationsOpen, setAutomationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    listAutomations(sb, board.id)
+      .then((rows) => setAutomations(Object.fromEntries(rows.map((r) => [r.key, r.enabled]))))
+      .catch((e) => console.error('listAutomations failed', e));
+    listNotifications(sb, user.id)
+      .then(setNotifications)
+      .catch((e) => console.error('listNotifications failed', e));
+  }, [sb, board.id, user.id]);
+
+  const toggleAutomation = useCallback((key, enabled) => {
+    setAutomations((m) => ({ ...m, [key]: enabled }));
+    setAutomation(sb, board.id, key, enabled).catch((e) => console.error('setAutomation failed', e));
+  }, [sb, board.id]);
+
+  const dismissOneNotification = useCallback((id) => {
+    setNotifications((list) => list.filter((n) => n.id !== id));
+    dismissNotification(sb, id).catch((e) => console.error('dismissNotification failed', e));
+  }, [sb]);
+
+  const dismissAllNotifications = useCallback(() => {
+    setNotifications([]);
+    dismissAll(sb, user.id).catch((e) => console.error('dismissAll failed', e));
+  }, [sb, user.id]);
+
   // ---- column ops ----
   const resizeColumn = useCallback((key, width) => {
     setPrefsState((p) => ({ ...p, colWidths: { ...p.colWidths, [key]: width } }));
@@ -332,6 +365,12 @@ export default function BoardGrid({ user, board, options, prefs }) {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search deals" />
           </div>
           <button className="board-btn" onClick={collapseAll}>{allCollapsed ? 'Expand all' : 'Collapse all'}</button>
+          <button className="board-btn" onClick={() => setAutomationsOpen(true)}>⚡ Automations</button>
+          <NotificationsBell
+            notifications={notifications}
+            onDismiss={dismissOneNotification}
+            onDismissAll={dismissAllNotifications}
+          />
         </div>
 
         {tree.groups.map((group) => {
@@ -370,6 +409,14 @@ export default function BoardGrid({ user, board, options, prefs }) {
           );
         })}
       </div>
+
+      {automationsOpen && (
+        <AutomationsPanel
+          enabledMap={automations}
+          onToggle={toggleAutomation}
+          onClose={() => setAutomationsOpen(false)}
+        />
+      )}
     </main>
   );
 }

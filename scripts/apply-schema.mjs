@@ -25,16 +25,34 @@ if (!url) {
 }
 
 const sql = await readFile(join(root, 'supabase/schema.sql'), 'utf8');
+const marker = '-- ==CRON==';
+const splitAt = sql.indexOf(marker);
+const mainSql = splitAt < 0 ? sql : sql.slice(0, splitAt);
+const cronSql = splitAt < 0 ? '' : sql.slice(splitAt);
 
 const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
 await client.connect();
 console.log('Connected. Applying schema.sql ...');
 try {
-  await client.query(sql);
+  await client.query(mainSql);
   console.log('Schema applied successfully.');
 } catch (err) {
   console.error('Failed:', err.message);
   process.exitCode = 1;
-} finally {
-  await client.end();
 }
+
+// pg_cron needs to be enabled per-project; some plans only allow that from
+// the dashboard. Run it as its own batch so a failure here can't roll back
+// the schema above (Postgres runs a multi-statement simple-query string as
+// one implicit transaction).
+if (cronSql.trim() && !process.exitCode) {
+  try {
+    await client.query(cronSql);
+    console.log('pg_cron schedule applied.');
+  } catch (err) {
+    console.warn('pg_cron step skipped:', err.message);
+    console.warn('Enable "pg_cron" under Database > Extensions in the Supabase dashboard, then re-run this script.');
+  }
+}
+
+await client.end();
