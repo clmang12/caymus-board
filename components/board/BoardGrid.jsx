@@ -11,8 +11,12 @@ import { savePrefs } from '@/lib/data/prefs';
 import GroupSection from './GroupSection';
 import AutomationsPanel from './AutomationsPanel';
 import NotificationsBell from './NotificationsBell';
+import BoardCards from './BoardCards';
+import ItemDetailSheet from './ItemDetailSheet';
 import { resolveColumns, DEFAULT_ORDER } from './columns';
 import './board.css';
+
+const MOBILE_QUERY = '(max-width: 767px)';
 
 const SEARCH_FIELDS = ['name', 'agent', 'deal', 'status', 'appraiser', 'broker', 'compliance', 'notes', 'email'];
 
@@ -63,6 +67,17 @@ export default function BoardGrid({ user, board, options, prefs }) {
   const [dragItemId, setDragItemId] = useState(null);
 
   const cols = useMemo(() => resolveColumns(prefsState), [prefsState]);
+
+  // ---- mobile layout (PORTING item 8) ----
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_QUERY);
+    setIsMobile(mq.matches);
+    const onChange = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  const [detailItemId, setDetailItemId] = useState(null);
 
   // ---- persistence (debounced) ----
   const saveTimer = useRef(null);
@@ -265,6 +280,12 @@ export default function BoardGrid({ user, board, options, prefs }) {
     } catch (e) { console.error('getDownloadUrl failed', e); }
   }, [sb]);
 
+  const openDetail = useCallback((itemId) => {
+    setDetailItemId(itemId);
+    loadAttachments(itemId);
+  }, [loadAttachments]);
+  const closeDetail = useCallback(() => setDetailItemId(null), []);
+
   // ---- automations (item 9) + notifications (item 5) ----
   const [automations, setAutomations] = useState({});
   const [automationsOpen, setAutomationsOpen] = useState(false);
@@ -348,6 +369,21 @@ export default function BoardGrid({ user, board, options, prefs }) {
 
   const q = search.trim().toLowerCase();
 
+  const visibleGroups = useMemo(() => {
+    return tree.groups
+      .map((group) => ({ group, items: sortItems((group.items || []).filter((it) => matchesSearch(it, q)), sort) }))
+      .filter(({ items }) => !(q && items.length === 0));
+  }, [tree.groups, q, sort]);
+
+  let detailItem = null;
+  let detailGroupColor = null;
+  if (detailItemId) {
+    for (const g of tree.groups) {
+      const found = (g.items || []).find((it) => it.id === detailItemId);
+      if (found) { detailItem = found; detailGroupColor = g.color; break; }
+    }
+  }
+
   return (
     <main className="board-main">
       <div style={{ padding: '16px 24px 0' }}>
@@ -373,10 +409,17 @@ export default function BoardGrid({ user, board, options, prefs }) {
           />
         </div>
 
-        {tree.groups.map((group) => {
-          const items = sortItems((group.items || []).filter((it) => matchesSearch(it, q)), sort);
-          if (q && items.length === 0) return null;
-          return (
+        {isMobile ? (
+          <BoardCards
+            visibleGroups={visibleGroups}
+            options={options}
+            collapsed={prefsState.collapsed}
+            onToggleCollapsed={toggleCollapsed}
+            onAddItem={addItem}
+            onOpenDetail={openDetail}
+          />
+        ) : (
+          visibleGroups.map(({ group, items }) => (
             <GroupSection
               key={group.id}
               group={{ ...group, items }}
@@ -406,9 +449,28 @@ export default function BoardGrid({ user, board, options, prefs }) {
               onRowDragEnd={() => setDragItemId(null)}
               onMoveRow={moveRow}
             />
-          );
-        })}
+          ))
+        )}
       </div>
+
+      {detailItem && (
+        <ItemDetailSheet
+          item={detailItem}
+          cols={cols}
+          options={options}
+          groupColor={detailGroupColor}
+          onClose={closeDetail}
+          onCommit={(patch) => commitItem(detailItem.id, patch)}
+          onCommitSubitem={(subId, patch) => commitSubitem(detailItem.id, subId, patch)}
+          onAddSubitem={(name) => createSubitem(detailItem.id, name)}
+          onDeleteSubitem={(subId) => removeSubitem(detailItem.id, subId)}
+          onApplyChecklist={(deal) => applyChecklist(detailItem.id, deal)}
+          attachments={attachmentsByItem[detailItem.id]}
+          onUploadAttachment={(file) => uploadAttachmentFor(detailItem.id, file)}
+          onDeleteAttachment={(attId, path) => removeAttachmentFor(detailItem.id, attId, path)}
+          onDownloadAttachment={downloadAttachment}
+        />
+      )}
 
       {automationsOpen && (
         <AutomationsPanel

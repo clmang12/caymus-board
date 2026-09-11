@@ -294,6 +294,73 @@
 .notif-item button:hover { background: var(--bd2); color: var(--tx); }
 .notif-empty { padding: 20px 10px; text-align: center; font-size: 12.5px; color: var(--tx3); }
 
+/* mobile cards (PORTING item 8, <768px) */
+.cards-wrap { display: flex; flex-direction: column; gap: 4px; padding-bottom: 40px; }
+.card-group-head {
+  display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none;
+  cursor: pointer; padding: 10px 4px; font-size: 14px; font-weight: 700; text-align: left;
+}
+.card-chevron { display: inline-block; transition: transform .15s; font-size: 11px; }
+.card-chevron.open { transform: rotate(90deg); }
+.card-group-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-group-count { font-size: 12px; font-weight: 500; color: var(--tx3); }
+.card-list { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
+.deal-card {
+  display: flex; flex-direction: column; gap: 6px; text-align: left; width: 100%;
+  background: var(--s1); border: 1px solid var(--bd2); border-left: 4px solid var(--bd3);
+  border-radius: 8px; padding: 12px 14px; cursor: pointer; font: inherit; color: var(--tx);
+}
+.deal-card:active { background: var(--hov); }
+.deal-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.deal-card-name { font-size: 14px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.deal-card-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; font-size: 12px; color: var(--tx2); }
+.card-empty { padding: 10px 4px; font-size: 12.5px; color: var(--tx3); }
+.card-add { padding: 2px 0 10px; }
+.card-add input {
+  width: 100%; border: 1px dashed var(--bd3); border-radius: 8px; background: none;
+  padding: 9px 12px; font-size: 13px; color: var(--tx); outline: none;
+}
+.card-add input:focus { border-color: var(--blue); border-style: solid; }
+
+/* mobile detail sheet */
+.msheet {
+  background: var(--s1); width: 100%; max-width: 480px; margin: 0 auto; border-radius: 14px;
+  box-shadow: var(--shadow-pop); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;
+}
+.msheet-head { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid var(--bd2); }
+.msheet-name { flex: 1; min-width: 0; font-size: 17px; font-weight: 700; border: none; outline: none; background: transparent; color: var(--tx); font-family: inherit; }
+.msheet-head button { background: none; border: none; cursor: pointer; color: var(--tx3); font-size: 16px; padding: 4px 6px; border-radius: 4px; line-height: 1; }
+.msheet-head button:hover { background: var(--s3); color: var(--tx); }
+.msheet-body { overflow-y: auto; padding-bottom: 12px; }
+.msheet-field { display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--bd); }
+.msheet-label { flex: 0 0 118px; font-size: 12px; color: var(--tx2); font-weight: 600; }
+.msheet-value { flex: 1; min-width: 0; display: flex; align-items: center; height: 36px; }
+.msheet-scroll-x { overflow-x: auto; }
+.msheet-body .subs-wrap, .msheet-body .files-wrap { padding-left: 16px; padding-right: 16px; }
+
+/* mobile sidebar drawer + topbar */
+.board-main-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.mobile-topbar { display: none; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--bd2); background: var(--s1); flex: 0 0 auto; }
+.mobile-topbar button {
+  background: none; border: 1px solid var(--bd3); border-radius: 6px; width: 34px; height: 32px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--tx); flex: 0 0 auto;
+}
+.mobile-topbar-title { font-weight: 700; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-scrim { display: none; }
+
+@media (max-width: 767px) {
+  .mobile-topbar { display: flex; }
+  .board-root { position: relative; }
+  .sb {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 300; width: 260px; flex: 0 0 260px;
+    transform: translateX(-100%); transition: transform .2s; box-shadow: var(--shadow-pop);
+  }
+  .sb-drawer-open .sb { transform: translateX(0); }
+  .sb-drawer-open .sb-scrim { display: block; position: fixed; inset: 0; z-index: 290; background: rgba(30, 40, 80, .3); }
+  .board-search { width: 100%; }
+  .board-scroll { padding: 4px 14px 60px; }
+}
+
 /* popover */
 .pop {
   position: fixed; z-index: 1000; background: var(--s1, #fff);
