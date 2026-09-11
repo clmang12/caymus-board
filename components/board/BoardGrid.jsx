@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { subscribeToBoard } from '@/lib/data/realtime';
 import { updateItem, createItem, setItemPositions } from '@/lib/data/boards';
 import { addSubitem, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
+import { listAttachments, uploadAttachment, deleteAttachment, getDownloadUrl } from '@/lib/data/attachments';
 import { savePrefs } from '@/lib/data/prefs';
 import GroupSection from './GroupSection';
 import { resolveColumns, DEFAULT_ORDER } from './columns';
@@ -213,6 +214,53 @@ export default function BoardGrid({ user, board, options, prefs }) {
     } catch (e) { console.error('applyTemplate failed', e); }
   }, [sb, board.id, patchSubs]);
 
+  // ---- attachments (lazy per item, not in the tree query or realtime) ----
+  const [attachmentsByItem, setAttachmentsByItem] = useState({});
+  const attachmentsLoaded = useRef(new Set());
+
+  const loadAttachments = useCallback((itemId) => {
+    if (attachmentsLoaded.current.has(itemId)) return;
+    attachmentsLoaded.current.add(itemId);
+    setAttachmentsByItem((m) => ({ ...m, [itemId]: { loading: true, list: [] } }));
+    listAttachments(sb, itemId)
+      .then((list) => setAttachmentsByItem((m) => ({ ...m, [itemId]: { loading: false, list } })))
+      .catch((e) => {
+        console.error('listAttachments failed', e);
+        attachmentsLoaded.current.delete(itemId);
+        setAttachmentsByItem((m) => ({ ...m, [itemId]: { loading: false, list: [] } }));
+      });
+  }, [sb]);
+
+  const uploadAttachmentFor = useCallback(async (itemId, file) => {
+    try {
+      const created = await uploadAttachment(sb, { itemId, file, userId: user.id });
+      setAttachmentsByItem((m) => ({
+        ...m,
+        [itemId]: { loading: false, list: [created, ...((m[itemId] && m[itemId].list) || [])] },
+      }));
+    } catch (e) { console.error('uploadAttachment failed', e); }
+  }, [sb, user.id]);
+
+  const removeAttachmentFor = useCallback((itemId, attachmentId, storagePath) => {
+    setAttachmentsByItem((m) => ({
+      ...m,
+      [itemId]: { loading: false, list: ((m[itemId] && m[itemId].list) || []).filter((a) => a.id !== attachmentId) },
+    }));
+    deleteAttachment(sb, attachmentId, storagePath).catch((e) => console.error('deleteAttachment failed', e));
+  }, [sb]);
+
+  const downloadAttachment = useCallback(async (storagePath, filename) => {
+    try {
+      const url = await getDownloadUrl(sb, storagePath);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) { console.error('getDownloadUrl failed', e); }
+  }, [sb]);
+
   // ---- column ops ----
   const resizeColumn = useCallback((key, width) => {
     setPrefsState((p) => ({ ...p, colWidths: { ...p.colWidths, [key]: width } }));
@@ -256,10 +304,10 @@ export default function BoardGrid({ user, board, options, prefs }) {
   const toggleExpand = useCallback((itemId) => {
     setExpandedIds((s) => {
       const n = new Set(s);
-      n.has(itemId) ? n.delete(itemId) : n.add(itemId);
+      if (n.has(itemId)) { n.delete(itemId); } else { n.add(itemId); loadAttachments(itemId); }
       return n;
     });
-  }, []);
+  }, [loadAttachments]);
 
   const sortBy = useCallback((key) => {
     setSort((s) => (!s || s.key !== key ? { key, dir: 1 } : s.dir === 1 ? { key, dir: -1 } : null));
@@ -310,6 +358,10 @@ export default function BoardGrid({ user, board, options, prefs }) {
               onAddSubitem={createSubitem}
               onDeleteSubitem={removeSubitem}
               onApplyChecklist={applyChecklist}
+              attachmentsByItem={attachmentsByItem}
+              onUploadAttachment={uploadAttachmentFor}
+              onDeleteAttachment={removeAttachmentFor}
+              onDownloadAttachment={downloadAttachment}
               dragItemId={dragItemId}
               onRowDragStart={setDragItemId}
               onRowDragEnd={() => setDragItemId(null)}

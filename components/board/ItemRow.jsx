@@ -1,6 +1,7 @@
 'use client';
 import Cell from './Cell';
 import SubitemPanel from './SubitemPanel';
+import AttachmentsPanel from './AttachmentsPanel';
 import { gridTemplate } from './columns';
 
 const Chevron = ({ open }) => (
@@ -12,6 +13,7 @@ const Chevron = ({ open }) => (
 export default function ItemRow({
   item, cols, options, groupColor, onCommit, expanded, onToggleExpand,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
+  attachments, onUploadAttachment, onDeleteAttachment, onDownloadAttachment,
   dragging, dropBefore, onDragStartRow, onDragEndRow, onDragOverRow, onDropRow,
 }) {
   const tmpl = gridTemplate(cols);
@@ -62,15 +64,23 @@ export default function ItemRow({
       </div>
 
       {expanded && (
-        <SubitemPanel
-          subs={subs}
-          options={options}
-          groupColor={groupColor}
-          onCommitSubitem={onCommitSubitem}
-          onAddSubitem={onAddSubitem}
-          onDeleteSubitem={onDeleteSubitem}
-          onApplyChecklist={onApplyChecklist}
-        />
+        <>
+          <SubitemPanel
+            subs={subs}
+            options={options}
+            groupColor={groupColor}
+            onCommitSubitem={onCommitSubitem}
+            onAddSubitem={onAddSubitem}
+            onDeleteSubitem={onDeleteSubitem}
+            onApplyChecklist={onApplyChecklist}
+          />
+          <AttachmentsPanel
+            attachments={attachments}
+            onUpload={onUploadAttachment}
+            onDelete={onDeleteAttachment}
+            onDownload={onDownloadAttachment}
+          />
+        </>
       )}
     </div>
   );
