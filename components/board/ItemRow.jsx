@@ -1,7 +1,9 @@
 'use client';
+import { useRef, useState } from 'react';
 import Cell from './Cell';
 import SubitemPanel from './SubitemPanel';
 import AttachmentsPanel from './AttachmentsPanel';
+import Popover from './Popover';
 import { gridTemplate } from './columns';
 
 const Chevron = ({ open }) => (
@@ -14,10 +16,17 @@ export default function ItemRow({
   item, cols, options, groupColor, onCommit, expanded, onToggleExpand,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
   attachments, onUploadAttachment, onDeleteAttachment, onDownloadAttachment,
+  onDuplicateItem, onDeleteItem,
   dragging, dropBefore, onDragStartRow, onDragEndRow, onDragOverRow, onDropRow,
 }) {
   const tmpl = gridTemplate(cols);
   const subs = item.subitems || [];
+  const menuBtnRef = useRef(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const onDelete = () => {
+    if (confirm(`Delete "${item.name}"? It moves to trash and can be restored.`)) onDeleteItem(item.id);
+  };
 
   return (
     <div
@@ -49,6 +58,18 @@ export default function ItemRow({
                     onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== item.name) onCommit({ name: v }); else e.target.value = item.name; }}
                   />
                   {subs.length > 0 && <span className="chip" title={`${subs.length} conditions`}>{subs.length}</span>}
+                  <button
+                    ref={menuBtnRef}
+                    className={'sb-menu-btn row-menu-btn' + (menuOpen ? ' open' : '')}
+                    title="Deal options"
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(true); }}
+                  >⋯</button>
+                  {menuOpen && (
+                    <Popover anchorRect={menuBtnRef.current.getBoundingClientRect()} onClose={() => setMenuOpen(false)} width={170}>
+                      <div className="pop-opt" onClick={() => { setMenuOpen(false); onDuplicateItem(item.id); }}>Duplicate</div>
+                      <div className="pop-opt" style={{ color: '#df2f4a' }} onClick={() => { setMenuOpen(false); onDelete(); }}>Delete</div>
+                    </Popover>
+                  )}
                 </div>
               </div>
             );

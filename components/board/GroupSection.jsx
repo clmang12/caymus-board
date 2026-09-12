@@ -15,6 +15,7 @@ export default function GroupSection({
   sort, onSort, expandedIds, onToggleExpand, onAddItem,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
   attachmentsByItem, onUploadAttachment, onDeleteAttachment, onDownloadAttachment,
+  onDuplicateItem, onDeleteItem,
   dragItemId, onRowDragStart, onRowDragEnd, onMoveRow,
 }) {
   const [dragKey, setDragKey] = useState(null);
@@ -113,6 +114,8 @@ export default function GroupSection({
               onUploadAttachment={(file) => onUploadAttachment(it.id, file)}
               onDeleteAttachment={(attId, path) => onDeleteAttachment(it.id, attId, path)}
               onDownloadAttachment={onDownloadAttachment}
+              onDuplicateItem={onDuplicateItem}
+              onDeleteItem={onDeleteItem}
               dragging={dragItemId === it.id}
               dropBefore={!!dragItemId && dragItemId !== it.id && rowOver === it.id}
               onDragStartRow={() => onRowDragStart(it.id)}

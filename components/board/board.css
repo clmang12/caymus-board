@@ -19,6 +19,20 @@
   --shadow-card: 0 4px 20px rgba(30, 40, 80, .06);
 }
 
+/* Dark theme. The .dark class lives on <html> (not .board-root) so these
+   custom properties reach popovers, which portal into document.body — a
+   sibling of .board-root, not a descendant of it. */
+:root.dark {
+  --s1: #20222b; --s2: #191b23; --s3: #2b2e38;
+  --bd: #31343f; --bd2: #282b34; --bd3: #3c414d;
+  --tx: #e7e8ee; --tx2: #a4a7b4; --tx3: #767a87;
+  --empty: #2c2f39; --hov: #282b34; --sum: #1b1d25;
+}
+:root.dark body { background: #14151b; }
+:root.dark input::placeholder, :root.dark textarea::placeholder { color: #6b6f7d; }
+:root.dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.85); }
+:root.dark ::-webkit-scrollbar-thumb { background: #3c414d; }
+
 .board-root {
   height: 100vh;
   display: flex;
@@ -172,6 +186,8 @@
 }
 .irow-wrap:hover .row-drag { opacity: 1; }
 .row-drag:active { cursor: grabbing; }
+.row-menu-btn { flex: 0 0 auto; margin-left: auto; }
+.irow-wrap:hover .row-menu-btn, .row-menu-btn.open { opacity: 1; }
 
 /* row drag-and-drop between groups */
 .irow-wrap { position: relative; }

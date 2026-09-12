@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { subscribeToBoard } from '@/lib/data/realtime';
-import { updateItem, createItem, setItemPositions } from '@/lib/data/boards';
+import { updateItem, createItem, duplicateItem, deleteItem, setItemPositions } from '@/lib/data/boards';
 import { addSubitem, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
 import { listAttachments, uploadAttachment, deleteAttachment, getDownloadUrl } from '@/lib/data/attachments';
 import { listAutomations, setAutomation } from '@/lib/data/automations';
@@ -59,9 +59,15 @@ export default function BoardGrid({ user, board, options, prefs }) {
     colWidths: prefs?.colWidths || {},
     colOrder: prefs?.colOrder || DEFAULT_ORDER,
     collapsed: prefs?.collapsed || {},
+    theme: prefs?.theme || 'light',
   }));
 
   useEffect(() => { setTree(board); }, [board]);
+
+  // ---- dark/light theme ----
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', prefsState.theme === 'dark');
+  }, [prefsState.theme]);
 
   const treeRef = useRef(tree);
   useEffect(() => { treeRef.current = tree; }, [tree]);
@@ -191,6 +197,28 @@ export default function BoardGrid({ user, board, options, prefs }) {
     setTree({ ...cur, groups });
     setItemPositions(sb, targetItems.map((it, i) => ({ id: it.id, position: i, group_id: toGroupId })))
       .catch((e) => console.error('setItemPositions failed', e));
+  }, [sb]);
+
+  const duplicateItemFor = useCallback(async (itemId) => {
+    try {
+      const created = await duplicateItem(sb, itemId);
+      setTree((t) => ({
+        ...t,
+        groups: t.groups.map((g) =>
+          g.items.some((it) => it.id === itemId) && !g.items.some((it) => it.id === created.id)
+            ? { ...g, items: [...g.items, created] }
+            : g),
+      }));
+    } catch (e) { console.error('duplicateItem failed', e); }
+  }, [sb]);
+
+  const removeItem = useCallback((itemId) => {
+    setTree((t) => ({
+      ...t,
+      groups: t.groups.map((g) => ({ ...g, items: g.items.filter((it) => it.id !== itemId) })),
+    }));
+    setExpandedIds((s) => { if (!s.has(itemId)) return s; const n = new Set(s); n.delete(itemId); return n; });
+    deleteItem(sb, itemId).catch((e) => console.error('deleteItem failed', e));
   }, [sb]);
 
   // ---- subitem mutations (optimistic) ----
@@ -363,6 +391,14 @@ export default function BoardGrid({ user, board, options, prefs }) {
     });
   }, [persist]);
 
+  const toggleTheme = useCallback(() => {
+    setPrefsState((p) => {
+      const next = { ...p, theme: p.theme === 'dark' ? 'light' : 'dark' };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
   // ---- group / row ops ----
   const toggleCollapsed = useCallback((groupId) => {
     setPrefsState((p) => {
@@ -439,6 +475,9 @@ export default function BoardGrid({ user, board, options, prefs }) {
             onDismiss={dismissOneNotification}
             onDismissAll={dismissAllNotifications}
           />
+          <button className="board-btn" title="Toggle theme" onClick={toggleTheme}>
+            {prefsState.theme === 'dark' ? '☀️' : '🌙'}
+          </button>
         </div>
 
         {isMobile ? (
@@ -476,6 +515,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
               onUploadAttachment={uploadAttachmentFor}
               onDeleteAttachment={removeAttachmentFor}
               onDownloadAttachment={downloadAttachment}
+              onDuplicateItem={duplicateItemFor}
+              onDeleteItem={removeItem}
               dragItemId={dragItemId}
               onRowDragStart={setDragItemId}
               onRowDragEnd={() => setDragItemId(null)}
@@ -501,6 +542,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
           onUploadAttachment={(file) => uploadAttachmentFor(detailItem.id, file)}
           onDeleteAttachment={(attId, path) => removeAttachmentFor(detailItem.id, attId, path)}
           onDownloadAttachment={downloadAttachment}
+          onDuplicateItem={duplicateItemFor}
+          onDeleteItem={removeItem}
         />
       )}
 
