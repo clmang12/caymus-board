@@ -5,6 +5,7 @@ import { subscribeToBoard } from '@/lib/data/realtime';
 import { updateItem, createItem, duplicateItem, deleteItem, setItemPositions } from '@/lib/data/boards';
 import { addSubitem, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
 import { listAttachments, uploadAttachment, deleteAttachment, getDownloadUrl } from '@/lib/data/attachments';
+import { listUpdates, postUpdate } from '@/lib/data/updates';
 import { listAutomations, setAutomation } from '@/lib/data/automations';
 import { listNotifications, dismissNotification, dismissAll } from '@/lib/data/notifications';
 import { savePrefs } from '@/lib/data/prefs';
@@ -281,6 +282,33 @@ export default function BoardGrid({ user, board, options, prefs }) {
       });
   }, [sb]);
 
+  // ---- updates / comments (lazy per item, not in the tree query or realtime) ----
+  const [updatesByItem, setUpdatesByItem] = useState({});
+  const updatesLoaded = useRef(new Set());
+
+  const loadUpdates = useCallback((itemId) => {
+    if (updatesLoaded.current.has(itemId)) return;
+    updatesLoaded.current.add(itemId);
+    setUpdatesByItem((m) => ({ ...m, [itemId]: { loading: true, list: [] } }));
+    listUpdates(sb, itemId)
+      .then((list) => setUpdatesByItem((m) => ({ ...m, [itemId]: { loading: false, list } })))
+      .catch((e) => {
+        console.error('listUpdates failed', e);
+        updatesLoaded.current.delete(itemId);
+        setUpdatesByItem((m) => ({ ...m, [itemId]: { loading: false, list: [] } }));
+      });
+  }, [sb]);
+
+  const postUpdateFor = useCallback(async (itemId, body) => {
+    try {
+      const created = await postUpdate(sb, itemId, user.id, body);
+      setUpdatesByItem((m) => ({
+        ...m,
+        [itemId]: { loading: false, list: [created, ...((m[itemId] && m[itemId].list) || [])] },
+      }));
+    } catch (e) { console.error('postUpdate failed', e); }
+  }, [sb, user.id]);
+
   // ---- "+ New Deal" quick-create: picks a deal type, drops the item in the
   // first group, and auto-applies the matching Purch/Refi checklist. ----
   const addNewDeal = useCallback(async (dealLabel) => {
@@ -303,10 +331,11 @@ export default function BoardGrid({ user, board, options, prefs }) {
       });
       setExpandedIds((s) => new Set(s).add(created.id));
       loadAttachments(created.id);
+      loadUpdates(created.id);
       if (/purch/i.test(dealLabel)) applyChecklist(created.id, 'Purch');
       else if (/refi/i.test(dealLabel)) applyChecklist(created.id, 'Refi');
     } catch (e) { console.error('addNewDeal failed', e); }
-  }, [sb, board.id, persist, applyChecklist, loadAttachments]);
+  }, [sb, board.id, persist, applyChecklist, loadAttachments, loadUpdates]);
 
   const uploadAttachmentFor = useCallback(async (itemId, file) => {
     try {
@@ -341,7 +370,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
   const openDetail = useCallback((itemId) => {
     setDetailItemId(itemId);
     loadAttachments(itemId);
-  }, [loadAttachments]);
+    loadUpdates(itemId);
+  }, [loadAttachments, loadUpdates]);
   const closeDetail = useCallback(() => setDetailItemId(null), []);
 
   // ---- automations (item 9) + notifications (item 5) ----
@@ -424,10 +454,10 @@ export default function BoardGrid({ user, board, options, prefs }) {
   const toggleExpand = useCallback((itemId) => {
     setExpandedIds((s) => {
       const n = new Set(s);
-      if (n.has(itemId)) { n.delete(itemId); } else { n.add(itemId); loadAttachments(itemId); }
+      if (n.has(itemId)) { n.delete(itemId); } else { n.add(itemId); loadAttachments(itemId); loadUpdates(itemId); }
       return n;
     });
-  }, [loadAttachments]);
+  }, [loadAttachments, loadUpdates]);
 
   const sortBy = useCallback((key) => {
     setSort((s) => (!s || s.key !== key ? { key, dir: 1 } : s.dir === 1 ? { key, dir: -1 } : null));
@@ -515,6 +545,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
               onUploadAttachment={uploadAttachmentFor}
               onDeleteAttachment={removeAttachmentFor}
               onDownloadAttachment={downloadAttachment}
+              updatesByItem={updatesByItem}
+              onPostUpdate={postUpdateFor}
               onDuplicateItem={duplicateItemFor}
               onDeleteItem={removeItem}
               dragItemId={dragItemId}
@@ -542,6 +574,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
           onUploadAttachment={(file) => uploadAttachmentFor(detailItem.id, file)}
           onDeleteAttachment={(attId, path) => removeAttachmentFor(detailItem.id, attId, path)}
           onDownloadAttachment={downloadAttachment}
+          updates={updatesByItem[detailItem.id]}
+          onPostUpdate={(body) => postUpdateFor(detailItem.id, body)}
           onDuplicateItem={duplicateItemFor}
           onDeleteItem={removeItem}
         />

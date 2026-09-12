@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import Cell from './Cell';
 import SubitemPanel from './SubitemPanel';
 import AttachmentsPanel from './AttachmentsPanel';
+import UpdatesPanel from './UpdatesPanel';
 import Popover from './Popover';
 import { gridTemplate } from './columns';
 
@@ -16,6 +17,7 @@ export default function ItemRow({
   item, cols, options, groupColor, onCommit, expanded, onToggleExpand,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
   attachments, onUploadAttachment, onDeleteAttachment, onDownloadAttachment,
+  updates, onPostUpdate,
   onDuplicateItem, onDeleteItem,
   dragging, dropBefore, onDragStartRow, onDragEndRow, onDragOverRow, onDropRow,
 }) {
@@ -101,6 +103,7 @@ export default function ItemRow({
             onDelete={onDeleteAttachment}
             onDownload={onDownloadAttachment}
           />
+          <UpdatesPanel updates={updates} onPost={onPostUpdate} />
         </>
       )}
     </div>

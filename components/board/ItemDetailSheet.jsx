@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import Cell from './Cell';
 import SubitemPanel from './SubitemPanel';
 import AttachmentsPanel from './AttachmentsPanel';
+import UpdatesPanel from './UpdatesPanel';
 import Popover from './Popover';
 
 // Mobile counterpart to a grid row: same Cell/SubitemPanel/AttachmentsPanel
@@ -11,6 +12,7 @@ export default function ItemDetailSheet({
   item, cols, options, groupColor, onClose, onCommit,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
   attachments, onUploadAttachment, onDeleteAttachment, onDownloadAttachment,
+  updates, onPostUpdate,
   onDuplicateItem, onDeleteItem,
 }) {
   const fieldCols = cols.filter((c) => c.key !== 'name');
@@ -84,6 +86,9 @@ export default function ItemDetailSheet({
               onDelete={onDeleteAttachment}
               onDownload={onDownloadAttachment}
             />
+          </div>
+          <div className="msheet-scroll-x">
+            <UpdatesPanel updates={updates} onPost={onPostUpdate} />
           </div>
         </div>
       </div>
