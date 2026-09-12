@@ -11,6 +11,7 @@ import { savePrefs } from '@/lib/data/prefs';
 import GroupSection from './GroupSection';
 import AutomationsPanel from './AutomationsPanel';
 import NotificationsBell from './NotificationsBell';
+import NewDealMenu from './NewDealMenu';
 import BoardCards from './BoardCards';
 import ItemDetailSheet from './ItemDetailSheet';
 import AiPanel from './AiPanel';
@@ -252,6 +253,33 @@ export default function BoardGrid({ user, board, options, prefs }) {
       });
   }, [sb]);
 
+  // ---- "+ New Deal" quick-create: picks a deal type, drops the item in the
+  // first group, and auto-applies the matching Purch/Refi checklist. ----
+  const addNewDeal = useCallback(async (dealLabel) => {
+    const group = treeRef.current.groups[0];
+    if (!group) return;
+    try {
+      const created = await createItem(sb, { boardId: board.id, groupId: group.id, name: 'New deal', deal: dealLabel });
+      setTree((t) => ({
+        ...t,
+        groups: t.groups.map((g) =>
+          g.id === group.id && !g.items.some((it) => it.id === created.id)
+            ? { ...g, items: [...g.items, { ...created, subitems: [] }] }
+            : g),
+      }));
+      setPrefsState((p) => {
+        if (!p.collapsed[group.id]) return p;
+        const next = { ...p, collapsed: { ...p.collapsed, [group.id]: false } };
+        persist(next);
+        return next;
+      });
+      setExpandedIds((s) => new Set(s).add(created.id));
+      loadAttachments(created.id);
+      if (/purch/i.test(dealLabel)) applyChecklist(created.id, 'Purch');
+      else if (/refi/i.test(dealLabel)) applyChecklist(created.id, 'Refi');
+    } catch (e) { console.error('addNewDeal failed', e); }
+  }, [sb, board.id, persist, applyChecklist, loadAttachments]);
+
   const uploadAttachmentFor = useCallback(async (itemId, file) => {
     try {
       const created = await uploadAttachment(sb, { itemId, file, userId: user.id });
@@ -402,6 +430,7 @@ export default function BoardGrid({ user, board, options, prefs }) {
             </svg>
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search deals" />
           </div>
+          <NewDealMenu options={options} onCreate={addNewDeal} />
           <button className="board-btn" onClick={collapseAll}>{allCollapsed ? 'Expand all' : 'Collapse all'}</button>
           <button className="board-btn" onClick={() => setAutomationsOpen(true)}>⚡ Automations</button>
           <button className="board-btn" onClick={() => setAiOpen(true)}>✨ AI Assistant</button>
