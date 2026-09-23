@@ -113,6 +113,9 @@
 .board-btn-primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 600; }
 .board-btn-primary:hover { background: #0060b9; }
 .board-btn-active { border-color: var(--blue); color: var(--blue); }
+.board-btn:disabled { opacity: .45; cursor: default; }
+.board-btn:not(.board-btn-primary):disabled:hover { background: none; }
+.undo-note { font-size: 12.5px; color: var(--tx2); }
 
 /* group */
 .grp { width: max-content; min-width: 100%; margin-top: 22px; }
@@ -294,7 +297,6 @@
   background: var(--s1); outline: none;
 }
 .updates-compose textarea:focus { border-color: var(--blue); }
-.updates-compose .board-btn:disabled { opacity: .5; cursor: default; }
 .update-row { display: flex; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--bd2); }
 .update-row:last-child { border-bottom: none; }
 .update-avatar {

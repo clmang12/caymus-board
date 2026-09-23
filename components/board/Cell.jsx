@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Popover from './Popover';
+import SyncedInput from './SyncedInput';
 import {
   labelColor, optionList, fmtCurrency, parseCurrency, fmtDate, EMPTY_COLOR,
 } from './columns';
@@ -22,9 +23,9 @@ export default function Cell({ col, item, options, onCommit, readOnly }) {
   // --- text (name, notes, email) ---
   if (col.type === 'text') {
     return (
-      <input
+      <SyncedInput
         className={'cell-input' + (col.key === 'email' ? ' email' : '')}
-        defaultValue={value ?? ''}
+        value={value ?? ''}
         placeholder={col.key === 'name' ? '' : '–'}
         readOnly={readOnly}
         onKeyDown={commitOnEnter}

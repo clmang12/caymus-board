@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Popover from './Popover';
+import SyncedInput from './SyncedInput';
 import { labelColor, optionList, EMPTY_COLOR } from './columns';
 
 const commitOnEnter = (e) => {
@@ -15,9 +16,9 @@ function SubRow({ sub, options, groupColor, onCommit, onDelete }) {
   return (
     <div className="subs-row">
       <div style={{ borderLeft: `5px solid ${groupColor}`, padding: '0 4px' }}>
-        <input
+        <SyncedInput
           className="sub-input"
-          defaultValue={sub.name}
+          value={sub.name}
           onKeyDown={commitOnEnter}
           onBlur={(e) => {
             const v = e.target.value.trim();
@@ -42,9 +43,9 @@ function SubRow({ sub, options, groupColor, onCommit, onDelete }) {
         />
       </div>
       <div style={{ padding: '0 4px' }}>
-        <input
+        <SyncedInput
           className="sub-input"
-          defaultValue={sub.details ?? ''}
+          value={sub.details ?? ''}
           placeholder="–"
           onKeyDown={commitOnEnter}
           onBlur={(e) => {

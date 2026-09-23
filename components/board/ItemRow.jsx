@@ -5,6 +5,7 @@ import SubitemPanel from './SubitemPanel';
 import AttachmentsPanel from './AttachmentsPanel';
 import UpdatesPanel from './UpdatesPanel';
 import Popover from './Popover';
+import SyncedInput from './SyncedInput';
 import { gridTemplate } from './columns';
 
 const Chevron = ({ open }) => (
@@ -53,9 +54,9 @@ export default function ItemRow({
                   <button className="name-expand" title="Conditions" onClick={onToggleExpand}>
                     <Chevron open={expanded} />
                   </button>
-                  <input
+                  <SyncedInput
                     className="cell-input"
-                    defaultValue={item.name}
+                    value={item.name}
                     onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { e.currentTarget.value = item.name; e.currentTarget.blur(); } }}
                     onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== item.name) onCommit({ name: v }); else e.target.value = item.name; }}
                   />

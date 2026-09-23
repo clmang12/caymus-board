@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { subscribeToBoard } from '@/lib/data/realtime';
-import { updateItem, createItem, duplicateItem, deleteItem, setItemPositions } from '@/lib/data/boards';
+import { getBoardTree, updateItem, createItem, duplicateItem, deleteItem, setItemPositions } from '@/lib/data/boards';
+import { findItemTrashId, restoreFromTrash } from '@/lib/data/trash';
 import { addSubitem, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
 import { listAttachments, uploadAttachment, deleteAttachment, getDownloadUrl } from '@/lib/data/attachments';
 import { listUpdates, postUpdate } from '@/lib/data/updates';
@@ -18,7 +19,7 @@ import TrashPanel from './TrashPanel';
 import BoardCards from './BoardCards';
 import ItemDetailSheet from './ItemDetailSheet';
 import AiPanel from './AiPanel';
-import { resolveColumns, DEFAULT_ORDER } from './columns';
+import { resolveColumns, DEFAULT_ORDER, COL_BY_KEY } from './columns';
 import './board.css';
 
 const MOBILE_QUERY = '(max-width: 767px)';
@@ -156,14 +157,43 @@ export default function BoardGrid({ user, board, options, prefs }) {
     });
   }, [sb, board.id]);
 
+  // ---- undo: this user's own recent changes, newest first. Entries are
+  // skipped (not forced) if the thing was changed again since, so undo never
+  // clobbers a teammate's later edit arriving over realtime. ----
+  const undoStack = useRef([]);
+  const [undoTop, setUndoTop] = useState(null);
+  const pushUndo = useCallback((entry) => {
+    undoStack.current.push(entry);
+    if (undoStack.current.length > 50) undoStack.current.shift();
+    setUndoTop(entry.label);
+  }, []);
+
+  const findItem = (itemId) => {
+    for (const g of treeRef.current.groups) {
+      const it = (g.items || []).find((i) => i.id === itemId);
+      if (it) return { group: g, item: it };
+    }
+    return null;
+  };
+
   // ---- item mutations (optimistic) ----
-  const commitItem = useCallback((itemId, patch) => {
+  const applyItemPatch = useCallback((itemId, patch) => {
     setTree((t) => ({
       ...t,
       groups: t.groups.map((g) => ({ ...g, items: g.items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) })),
     }));
     updateItem(sb, itemId, patch).catch((e) => console.error('updateItem failed', e));
   }, [sb]);
+
+  const commitItem = useCallback((itemId, patch) => {
+    const f = findItem(itemId);
+    if (f) {
+      const before = Object.fromEntries(Object.keys(patch).map((k) => [k, f.item[k] ?? null]));
+      const fields = Object.keys(patch).map((k) => COL_BY_KEY[k]?.label || k).join(', ');
+      pushUndo({ kind: 'item', itemId, before, after: patch, groupId: f.group.id, name: f.item.name, label: `${fields} on "${f.item.name}"` });
+    }
+    applyItemPatch(itemId, patch);
+  }, [applyItemPatch, pushUndo]);
 
   const addItem = useCallback(async (groupId, name) => {
     try {
@@ -175,11 +205,12 @@ export default function BoardGrid({ user, board, options, prefs }) {
             ? { ...g, items: [...g.items, { ...created, subitems: [] }] }
             : g),
       }));
+      pushUndo({ kind: 'create', itemId: created.id, name, label: `add "${name}"` });
     } catch (e) { console.error('createItem failed', e); }
-  }, [sb, board.id]);
+  }, [sb, board.id, pushUndo]);
 
   // ---- row drag between / within groups ----
-  const moveRow = useCallback((itemId, toGroupId, beforeItemId) => {
+  const moveRowRaw = useCallback((itemId, toGroupId, beforeItemId) => {
     const cur = treeRef.current;
     const fromGroup = cur.groups.find((g) => (g.items || []).some((it) => it.id === itemId));
     if (!fromGroup) return;
@@ -204,6 +235,16 @@ export default function BoardGrid({ user, board, options, prefs }) {
       .catch((e) => console.error('setItemPositions failed', e));
   }, [sb]);
 
+  const moveRow = useCallback((itemId, toGroupId, beforeItemId) => {
+    const f = findItem(itemId);
+    if (!f || beforeItemId === itemId) return;
+    const idx = f.group.items.findIndex((it) => it.id === itemId);
+    const nextId = f.group.items[idx + 1]?.id ?? null;
+    if (f.group.id === toGroupId && (beforeItemId ?? null) === nextId) return; // dropped where it was
+    pushUndo({ kind: 'move', itemId, fromGroupId: f.group.id, beforeItemId: nextId, toGroupId, name: f.item.name, label: `move "${f.item.name}"` });
+    moveRowRaw(itemId, toGroupId, beforeItemId);
+  }, [moveRowRaw, pushUndo]);
+
   const duplicateItemFor = useCallback(async (itemId) => {
     try {
       const created = await duplicateItem(sb, itemId);
@@ -214,10 +255,11 @@ export default function BoardGrid({ user, board, options, prefs }) {
             ? { ...g, items: [...g.items, created] }
             : g),
       }));
+      pushUndo({ kind: 'create', itemId: created.id, name: created.name, label: `duplicate "${created.name}"` });
     } catch (e) { console.error('duplicateItem failed', e); }
-  }, [sb]);
+  }, [sb, pushUndo]);
 
-  const removeItem = useCallback((itemId) => {
+  const removeItemRaw = useCallback((itemId) => {
     setTree((t) => ({
       ...t,
       groups: t.groups.map((g) => ({ ...g, items: g.items.filter((it) => it.id !== itemId) })),
@@ -226,8 +268,15 @@ export default function BoardGrid({ user, board, options, prefs }) {
     // A restore brings the item back under the same id; don't serve stale lists.
     attachmentsLoaded.current.delete(itemId);
     updatesLoaded.current.delete(itemId);
-    deleteItem(sb, itemId).catch((e) => console.error('deleteItem failed', e));
+    return deleteItem(sb, itemId);
   }, [sb]);
+
+  const removeItem = useCallback((itemId) => {
+    const name = findItem(itemId)?.item.name || 'deal';
+    const done = removeItemRaw(itemId);
+    done.catch((e) => console.error('deleteItem failed', e));
+    pushUndo({ kind: 'delete', itemId, done, name, label: `delete "${name}"` });
+  }, [removeItemRaw, pushUndo]);
 
   // ---- subitem mutations (optimistic) ----
   const patchSubs = useCallback((itemId, fn) => {
@@ -241,10 +290,21 @@ export default function BoardGrid({ user, board, options, prefs }) {
     }));
   }, []);
 
-  const commitSubitem = useCallback((itemId, subitemId, patch) => {
+  const applySubPatch = useCallback((itemId, subitemId, patch) => {
     patchSubs(itemId, (subs) => subs.map((s) => (s.id === subitemId ? { ...s, ...patch } : s)));
     updateSubitem(sb, subitemId, patch).catch((e) => console.error('updateSubitem failed', e));
   }, [sb, patchSubs]);
+
+  const commitSubitem = useCallback((itemId, subitemId, patch) => {
+    const sub = findItem(itemId)?.item.subitems?.find((s) => s.id === subitemId);
+    if (sub) {
+      const before = Object.fromEntries(Object.keys(patch).map((k) => [k, sub[k] ?? null]));
+      // The subDateStamp automation rewrites due_date when cond changes; put it back too.
+      if ('cond' in patch && !('due_date' in patch)) before.due_date = sub.due_date ?? null;
+      pushUndo({ kind: 'sub', itemId, subitemId, before, after: patch, name: sub.name, label: `condition "${sub.name}"` });
+    }
+    applySubPatch(itemId, subitemId, patch);
+  }, [applySubPatch, pushUndo]);
 
   const removeSubitem = useCallback((itemId, subitemId) => {
     patchSubs(itemId, (subs) => subs.filter((s) => s.id !== subitemId));
@@ -317,9 +377,11 @@ export default function BoardGrid({ user, board, options, prefs }) {
   }, [sb, user.id]);
 
   // ---- "+ New Deal" quick-create: picks a deal type, drops the item in the
-  // first group, and auto-applies the matching Purch/Refi checklist. ----
+  // first non-"Template" group (as the prototype did), and auto-applies the
+  // matching Purch/Refi checklist. ----
   const addNewDeal = useCallback(async (dealLabel) => {
-    const group = treeRef.current.groups[0];
+    const groups = treeRef.current.groups;
+    const group = groups.find((g) => !/template/i.test(g.title)) || groups[0];
     if (!group) return;
     try {
       const created = await createItem(sb, { boardId: board.id, groupId: group.id, name: 'New deal', deal: dealLabel });
@@ -341,8 +403,75 @@ export default function BoardGrid({ user, board, options, prefs }) {
       loadUpdates(created.id);
       if (/purch/i.test(dealLabel)) applyChecklist(created.id, 'Purch');
       else if (/refi/i.test(dealLabel)) applyChecklist(created.id, 'Refi');
+      pushUndo({ kind: 'create', itemId: created.id, name: created.name, label: `new ${dealLabel} deal` });
     } catch (e) { console.error('addNewDeal failed', e); }
-  }, [sb, board.id, persist, applyChecklist, loadAttachments, loadUpdates]);
+  }, [sb, board.id, persist, applyChecklist, loadAttachments, loadUpdates, pushUndo]);
+
+  // ---- undo ----
+  const [undoNote, setUndoNote] = useState('');
+  const noteTimer = useRef(null);
+  const note = useCallback((text) => {
+    setUndoNote(text);
+    clearTimeout(noteTimer.current);
+    noteTimer.current = setTimeout(() => setUndoNote(''), 4000);
+  }, []);
+  const undoBusy = useRef(false);
+
+  const undo = useCallback(async () => {
+    if (undoBusy.current) return;
+    const e = undoStack.current.pop();
+    setUndoTop(undoStack.current.at(-1)?.label ?? null);
+    if (!e) return;
+    undoBusy.current = true;
+    const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+    const f = findItem(e.itemId);
+    try {
+      if (e.kind === 'item') {
+        if (!f) return note(`Can't undo: "${e.name}" no longer exists`);
+        if (Object.keys(e.after).some((k) => !same(f.item[k], e.after[k]))) return note(`Skipped: "${e.name}" was changed again since`);
+        const patch = { ...e.before };
+        // A status/broker/compliance automation may have moved the deal; move it back too.
+        if (f.group.id !== e.groupId && treeRef.current.groups.some((g) => g.id === e.groupId)) patch.group_id = e.groupId;
+        applyItemPatch(e.itemId, patch);
+      } else if (e.kind === 'sub') {
+        const sub = f?.item.subitems?.find((s) => s.id === e.subitemId);
+        if (!sub) return note(`Can't undo: condition "${e.name}" no longer exists`);
+        if (Object.keys(e.after).some((k) => !same(sub[k], e.after[k]))) return note(`Skipped: condition "${e.name}" was changed again since`);
+        applySubPatch(e.itemId, e.subitemId, e.before);
+      } else if (e.kind === 'move') {
+        if (!f || f.group.id !== e.toGroupId) return note(`Skipped: "${e.name}" was moved again since`);
+        if (!treeRef.current.groups.some((g) => g.id === e.fromGroupId)) return note(`Can't undo: its old group is gone`);
+        moveRowRaw(e.itemId, e.fromGroupId, e.beforeItemId);
+      } else if (e.kind === 'create') {
+        if (!f) return note(`"${e.name}" is already gone`);
+        await removeItemRaw(e.itemId);
+      } else if (e.kind === 'delete') {
+        await e.done;
+        const trashId = await findItemTrashId(sb, e.itemId);
+        if (!trashId) return note(`Can't undo: "${e.name}" isn't in the trash anymore`);
+        await restoreFromTrash(sb, trashId);
+        setTree(await getBoardTree(sb, board.id));
+      }
+      note(`Undid ${e.label}`);
+    } catch (err) {
+      console.error('undo failed', err);
+      note(`Undo failed: ${err.message || err}`);
+    } finally {
+      undoBusy.current = false;
+    }
+  }, [sb, board.id, note, applyItemPatch, applySubPatch, moveRowRaw, removeItemRaw]);
+
+  // Cmd/Ctrl+Z outside text fields; inside one, leave the browser's text undo alone.
+  useEffect(() => {
+    const onKey = (ev) => {
+      if (!(ev.metaKey || ev.ctrlKey) || ev.shiftKey || ev.altKey || ev.key.toLowerCase() !== 'z') return;
+      if (ev.target.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      ev.preventDefault();
+      undo();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [undo]);
 
   const uploadAttachmentFor = useCallback(async (itemId, file) => {
     try {
@@ -509,6 +638,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
           </div>
           <NewDealMenu options={options} onCreate={addNewDeal} />
           <FilterMenu options={options} filter={filter} onChange={setFilter} />
+          <button className="board-btn" onClick={undo} disabled={!undoTop}
+            title={undoTop ? `Undo ${undoTop} (⌘Z / Ctrl+Z)` : 'Nothing to undo'}>↶ Undo</button>
           <button className="board-btn" onClick={collapseAll}>{allCollapsed ? 'Expand all' : 'Collapse all'}</button>
           <button className="board-btn" onClick={() => setAutomationsOpen(true)}>⚡ Automations</button>
           <button className="board-btn" onClick={() => setAiOpen(true)}>✨ AI Assistant</button>
@@ -521,6 +652,7 @@ export default function BoardGrid({ user, board, options, prefs }) {
           <button className="board-btn" title="Toggle theme" onClick={toggleTheme}>
             {prefsState.theme === 'dark' ? '☀️' : '🌙'}
           </button>
+          {undoNote && <span className="undo-note">{undoNote}</span>}
         </div>
 
         {isMobile ? (

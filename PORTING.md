@@ -99,9 +99,8 @@ prototype where everything starts on.
 ## Suggested order
 1, 2, 4 first — that gets you a usable app. Then 3, 7, 5, 6, 8, 9.
 All 9 items are done. Beyond the list, dark theme, the agent/lender filter
-menu, and a trash/restore view are also built (see HANDOFF.md, session 4).
-Undo is the one prototype feature not ported — it needs a design decision for
-a shared, realtime board; options are laid out in HANDOFF.md.
+menu, a trash/restore view, and per-user undo are also built (see HANDOFF.md,
+session 4) — every prototype feature is now ported.
 
 ## Working with Claude Code
 From the repo root:

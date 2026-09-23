@@ -5,6 +5,7 @@ import SubitemPanel from './SubitemPanel';
 import AttachmentsPanel from './AttachmentsPanel';
 import UpdatesPanel from './UpdatesPanel';
 import Popover from './Popover';
+import SyncedInput from './SyncedInput';
 
 // Mobile counterpart to a grid row: same Cell/SubitemPanel/AttachmentsPanel
 // components as the desktop grid, stacked into one scrollable sheet.
@@ -31,9 +32,9 @@ export default function ItemDetailSheet({
     <div className="modal-overlay" onClick={onClose}>
       <div className="msheet" onClick={(e) => e.stopPropagation()} style={{ borderTop: `4px solid ${groupColor}` }}>
         <div className="msheet-head">
-          <input
+          <SyncedInput
             className="msheet-name"
-            defaultValue={item.name}
+            value={item.name}
             onKeyDown={(e) => {
               if (e.key === 'Enter') e.currentTarget.blur();
               if (e.key === 'Escape') { e.currentTarget.value = item.name; e.currentTarget.blur(); }
@@ -50,7 +51,7 @@ export default function ItemDetailSheet({
             title="Deal options"
             onClick={() => setMenuOpen(true)}
           >⋯</button>
-          <button onClick={onClose}>✕</button>
+          <button title="Close" onClick={onClose}>✕</button>
         </div>
         {menuOpen && (
           <Popover anchorRect={menuBtnRef.current.getBoundingClientRect()} onClose={() => setMenuOpen(false)} width={170}>

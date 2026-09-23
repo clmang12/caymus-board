@@ -22,7 +22,7 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   Board UI in `components/board/`; sidebar is `components/Sidebar.jsx`.
 - **Also done since** (user requests, not on the PORTING list): "+ New Deal"
   button, per-deal ⋯ menu (duplicate/delete), dark/light theme, per-deal
-  Updates panel, agent/lender filter menu, trash/restore view. See
+  Updates panel, agent/lender filter menu, trash/restore view, undo. See
   "Session 4" below.
 - Auth works end to end **except email delivery** (Supabase built-in SMTP is
   rate-limited; custom SMTP not set up — see "Signing in" below for the bypass).
@@ -31,20 +31,21 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   but can't complete a real request until it's regenerated at
   console.anthropic.com. Everything short of that boundary is verified (see
   below).
-- Not started: **undo** only — deliberately, it needs a design decision (see
-  "What's NOT done").
+- Every prototype feature is now ported, including undo (per-user; see
+  Session 4). Remaining items need the user: API key, SMTP.
 
 ### Session 4 (2026-09-11 → 09-23) — post-PORTING features
 All user-requested, all deployed, each with a headless test (gitignored):
 
 | Feature | Commit | Where | Test |
 |---|---|---|---|
-| "+ New Deal" button → pick deal type → item in first group, row expanded, Purch/Refi checklist auto-applied. Deal types read live from `field_options`. | `03dd029` | `NewDealMenu.jsx`, `BoardGrid.addNewDeal` | `_ui-test-newdeal` |
+| "+ New Deal" button → pick deal type → item in the first non-"Template" group (matches the prototype), row expanded, Purch/Refi checklist auto-applied. Deal types read live from `field_options`. | `03dd029` | `NewDealMenu.jsx`, `BoardGrid.addNewDeal` | `_ui-test-newdeal` |
 | Per-deal ⋯ menu: Duplicate (item + subitems, not files) / Delete (to trash). Desktop row + mobile sheet. | `806e75a` | `ItemRow.jsx`, `ItemDetailSheet.jsx`, `boards.duplicateItem` | `_ui-test-menu-theme` |
 | Dark/light toggle, persisted in `user_prefs.prefs.theme`. `dark` class goes on `<html>`, not `.board-root`, so portaled popovers get the tokens too. | `806e75a` | `board.css` `:root.dark`, `BoardGrid.toggleTheme` | `_ui-test-menu-theme` |
 | Updates panel per deal (monday-style comment thread) — first UI for the existing `updates` table. Lazy per item, not realtime (same as files). | `b5a90cb` | `UpdatesPanel.jsx` | `_ui-test-updates` |
-| Agent/lender filter menu (single value each, combinable, hides empty groups; applies to mobile cards too). Not persisted. | this session | `FilterMenu.jsx` | `_ui-test-filter-trash` |
-| Trash view: list deleted deals + boards, Restore, Delete forever, Empty trash. | this session | `TrashPanel.jsx`, `lib/data/trash.js` | `_verify-trash` (17), `_ui-test-filter-trash` |
+| Agent/lender filter menu (single value each, combinable, hides empty groups; applies to mobile cards too). Not persisted. | `6dad87e` | `FilterMenu.jsx` | `_ui-test-filter-trash` |
+| Trash view: list deleted deals + boards, Restore, Delete forever, Empty trash. | `6dad87e` | `TrashPanel.jsx`, `lib/data/trash.js` | `_verify-trash` (17), `_ui-test-filter-trash` |
+| Undo (toolbar ↶ + ⌘Z/Ctrl+Z outside text fields). Per-user, in-memory (last 50, lost on reload). Covers deal field edits, condition edits, row moves, create/duplicate (undo = to trash), delete (undo = restore from trash). | this session | `BoardGrid.jsx` (`undo`, `pushUndo`) | `_ui-test-undo` (21) |
 
 **Trash details worth knowing.** Postgres cascades meant a delete used to
 permanently lose more than the snapshot kept: a deal's updates + file rows,
@@ -62,10 +63,27 @@ first remaining board. "Delete forever" also removes the storage files.
 inside itself; it now ignores scrolls within the popover, and `.pop` is
 capped at viewport height (the 21-lender cell editor could run off-screen).
 
-**Open question for the user**: the board's first group is titled
-"Template" but holds real client deals; "+ New Deal" drops new deals there
-because it targets `groups[0]`. Unconfirmed whether that's intended — maybe
-they should land in "Leads".
+**Undo design.** Only *your own* changes, newest first. Before reverting,
+it checks the current value still equals what you set; if a teammate (or an
+automation) changed it since, that entry is **skipped** with a note, never
+forced. Undoing a status/broker/compliance edit also moves the deal back if
+an automation moved it (a canned update the automation posted stays). Undoing
+a condition-status change also restores its due date (the subDateStamp
+automation rewrites it). Not covered: adding/deleting conditions, files,
+updates, column/prefs changes, anything done via the AI drawer.
+
+**Fixed along the way**: text inputs (deal name, notes, email, condition
+name/details) were uncontrolled `defaultValue` inputs, so they never showed
+changes made elsewhere — a teammate's rename over realtime stayed invisible
+until reload. New `SyncedInput.jsx` updates them unless you're typing in
+that field. Also, `_ui-test-item4`'s cleanup deleted *every* board/trash row
+named "Untitled board" or ending "(copy)" — i.e. real user boards; it now
+only removes rows it created. `_verify`/`_verify-boards` trash cleanup is
+pinned to their own fixture names.
+
+**Decided**: "+ New Deal" now skips the "Template" group (first group,
+holds real deals but is named like the prototype's template group) and
+lands in the next one ("Leads"), matching the prototype's own rule.
 
 ### Session 3 (2026-09-11) — items 5, 9, 8, 6
 Picked in that order: 5 and 9 are both server-side Postgres work (natural to
@@ -378,9 +396,8 @@ view. Remaining:
 |---|---|---|
 | `ANTHROPIC_API_KEY` | **User** | Re-checked 2026-09-23: Messages API still returns `authentication_error: API key is invalid`. Regenerate at console.anthropic.com, put it in `.env.local` and Vercel env, then re-run `scripts/_ui-test-item6.mjs`. |
 | Email delivery (SMTP) | **User** | Needs a sending domain — see `SMTP-SETUP.md`. |
-| Undo | Needs a decision | Prototype keeps a single-user localStorage undo stack. With a shared, realtime DB, "undo" has to decide whose changes it reverts and what happens if someone edited the same field since. Options: (a) per-user undo of *your own last change* only, skipped if the field changed since — small, needs an in-memory stack of `{table, id, before, after}` in `BoardGrid`; (b) a Postgres history table + restore — heavier, also gives an activity log. Trash already covers undoing deletes. |
+| Undo history across reloads / activity log | Optional | Undo is in-memory per tab. A Postgres history table would make it survive reloads and give monday's "Activity Log" tab. |
 | Trash auto-empty | Optional | Prototype auto-purged after 30 days. Not built; would be a pg_cron job, but it must also delete storage files, so it'd call storage from an Edge Function rather than plain SQL. |
-| "+ New Deal" target group | Question | Lands in the first group ("Template"). Confirm with the user. |
 
 Do **not** copy `design-reference/CAYMUS 25 Board.dc.html` into the app — it's a
 reference. Match its tokens/behaviour with React.
@@ -409,7 +426,9 @@ reference. Match its tokens/behaviour with React.
   `_verify-automations`, `_ui-test-item5-9`, `_ui-test-item8`,
   `_verify-ai-actions`, `_ui-test-item6`, `_ui-test-newdeal`,
   `_ui-test-menu-theme`, `_ui-test-updates`, `_verify-trash`,
-  `_ui-test-filter-trash` (headless CDP checks).
+  `_ui-test-filter-trash`, `_ui-test-undo` (headless CDP checks).
+  **Rule for new tests**: clean up by the ids the test created, never by
+  name patterns a real user could also produce.
 - **Deal name isn't in `textContent`**: it lives in an `<input>`'s value. In
   headless tests find rows by `r.querySelector('.icell.sticky .cell-input').value`
   — plain `.cell-input` also matches each row's Notes/Email inputs.
