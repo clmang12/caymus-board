@@ -1,6 +1,6 @@
 # HANDOFF — CAYMUS Board
 
-Session state as of 2026-09-11 (session 3, continued). Read this first when
+Session state as of 2026-09-23 (session 4). Read this first when
 resuming in a new Claude Code / Claude for VS Code window. Companion docs:
 `README.md` (overview), `PORTING.md` (all 9 items — now done, see below),
 `DEPLOY.md` (Vercel), `SMTP-SETUP.md` (email), `design-reference/README.md`
@@ -14,12 +14,16 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   Supabase**, deployed on **Vercel**.
 - **Live:** https://caymus-board.vercel.app — auto-deploys from `main` on every push.
 - Repo: https://github.com/clmang12/caymus-board (private). Branch `main`.
-  As of this handoff: through `9f1efb8`, pushed, tree clean, prod deploy green.
-  `git log --oneline -5` for the real HEAD.
+  `git log --oneline -5` for the real HEAD. The only untracked file should be
+  `app/api/dev-login/` — local-only on purpose, see "Signing in".
 - **All 9 PORTING.md items are DONE and deployed**: board grid, inline
   editing, subitem CRUD, sidebar board CRUD + row drag, notifications,
   AI assistant drawer, file attachments, mobile card view, automations.
   Board UI in `components/board/`; sidebar is `components/Sidebar.jsx`.
+- **Also done since** (user requests, not on the PORTING list): "+ New Deal"
+  button, per-deal ⋯ menu (duplicate/delete), dark/light theme, per-deal
+  Updates panel, agent/lender filter menu, trash/restore view. See
+  "Session 4" below.
 - Auth works end to end **except email delivery** (Supabase built-in SMTP is
   rate-limited; custom SMTP not set up — see "Signing in" below for the bypass).
 - **One open blocker**: `ANTHROPIC_API_KEY` (.env.local + Vercel) is rejected
@@ -27,11 +31,43 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   but can't complete a real request until it's regenerated at
   console.anthropic.com. Everything short of that boundary is verified (see
   below).
-- Not started, and intentionally outside the 9-item PORTING.md scope: dark
-  theme, a filter menu, undo, and a trash/restore view (soft-deleted boards
-  land in the `trash` table with no UI to browse or restore them).
+- Not started: **undo** only — deliberately, it needs a design decision (see
+  "What's NOT done").
 
-### This session (2026-09-11, session 3 continued) — items 5, 9, 8, 6
+### Session 4 (2026-09-11 → 09-23) — post-PORTING features
+All user-requested, all deployed, each with a headless test (gitignored):
+
+| Feature | Commit | Where | Test |
+|---|---|---|---|
+| "+ New Deal" button → pick deal type → item in first group, row expanded, Purch/Refi checklist auto-applied. Deal types read live from `field_options`. | `03dd029` | `NewDealMenu.jsx`, `BoardGrid.addNewDeal` | `_ui-test-newdeal` |
+| Per-deal ⋯ menu: Duplicate (item + subitems, not files) / Delete (to trash). Desktop row + mobile sheet. | `806e75a` | `ItemRow.jsx`, `ItemDetailSheet.jsx`, `boards.duplicateItem` | `_ui-test-menu-theme` |
+| Dark/light toggle, persisted in `user_prefs.prefs.theme`. `dark` class goes on `<html>`, not `.board-root`, so portaled popovers get the tokens too. | `806e75a` | `board.css` `:root.dark`, `BoardGrid.toggleTheme` | `_ui-test-menu-theme` |
+| Updates panel per deal (monday-style comment thread) — first UI for the existing `updates` table. Lazy per item, not realtime (same as files). | `b5a90cb` | `UpdatesPanel.jsx` | `_ui-test-updates` |
+| Agent/lender filter menu (single value each, combinable, hides empty groups; applies to mobile cards too). Not persisted. | this session | `FilterMenu.jsx` | `_ui-test-filter-trash` |
+| Trash view: list deleted deals + boards, Restore, Delete forever, Empty trash. | this session | `TrashPanel.jsx`, `lib/data/trash.js` | `_verify-trash` (17), `_ui-test-filter-trash` |
+
+**Trash details worth knowing.** Postgres cascades meant a delete used to
+permanently lose more than the snapshot kept: a deal's updates + file rows,
+and a board's field options / checklist templates / automation toggles.
+`deleteItem`/`deleteBoard` now snapshot all of that, and `deleteItem` no
+longer deletes if the trash insert fails (it used to ignore that error).
+Restore reinserts under the **original ids**, so file rows re-link to the
+storage objects that were never removed. A deal whose group is gone lands in
+the board's first group; a deal whose board is gone refuses with "restore the
+board first". Boards trashed before this change (old `getBoardTree`-shaped
+payload, no config) restore with field options/checklists borrowed from the
+first remaining board. "Delete forever" also removes the storage files.
+
+**Also fixed**: `Popover` closed on *any* scroll, including scrolling a list
+inside itself; it now ignores scrolls within the popover, and `.pop` is
+capped at viewport height (the 21-lender cell editor could run off-screen).
+
+**Open question for the user**: the board's first group is titled
+"Template" but holds real client deals; "+ New Deal" drops new deals there
+because it targets `groups[0]`. Unconfirmed whether that's intended — maybe
+they should land in "Leads".
+
+### Session 3 (2026-09-11) — items 5, 9, 8, 6
 Picked in that order: 5 and 9 are both server-side Postgres work (natural to
 do together), 8 is self-contained frontend, 6 was saved for last since it's
 blocked on an external dependency (the API key) I can't resolve myself.
@@ -193,6 +229,11 @@ one-time login per browser.
 cookie for headless/automated testing. `DEV_EMAIL=clmang@gmail.com node
 scripts/_mint-session.mjs` prints the exact `sb-<ref>-auth-token` cookie value.
 
+**3. Local only: `http://localhost:3000/api/dev-login`.** Mints a real session
+for `clmang@gmail.com` and redirects to the board — no login screen locally.
+`app/api/dev-login/route.js` is **deliberately uncommitted**; it also returns
+404 when `NODE_ENV=production`. Delete it to get the login screen back.
+
 A Supabase auth user for `clmang@gmail.com` already exists (created during
 setup; role `member`).
 
@@ -224,8 +265,8 @@ admin access to `caymusmortgage.ca`, so a sending domain must be arranged
 - `columns.js` — 14-column model (from `design-reference/README.md`), formatters,
   prefs resolution. Column widths/order persist per-user in `user_prefs`, keyed
   by column key.
-- `board.css` — design tokens (light theme only). Tokens are on `:root` (see
-  Gotchas) — everything else keys off them.
+- `board.css` — design tokens on `:root` (see Gotchas), dark overrides on
+  `:root.dark` — everything else keys off them.
 - `Popover.jsx` — portal-based (into `document.body`), escapes grid overflow,
   closes on outside click / Esc / scroll.
 - `Cell.jsx` — one renderer/editor per type: text, currency, date, label
@@ -330,19 +371,16 @@ before it can complete a real request — see the open blocker at the top.
 
 ## What's NOT done (next work)
 
-**All 9 PORTING.md items are done.** What's left is explicitly outside that
-numbered scope:
+**All 9 PORTING.md items are done**, plus dark theme, filter menu, and trash
+view. Remaining:
 
-| Item | Notes |
-|---|---|
-| Dark theme | Prototype has the dark token set; `board.css` is light-only. Tokens are already on `:root`, so a `@media (prefers-color-scheme)` block or a toggle (persisted via `user_prefs`, which already has a `prefs` jsonb column) is straightforward. |
-| Filter menu | Prototype has an agent/lender filter in the toolbar (see `design-reference/CAYMUS 25 Board.dc.html`, `filterAgent`/`filterLender` state). Not built — search is the only filter today. |
-| Undo | Prototype keeps a full undo stack client-side. Not attempted here — retrofitting undo onto server-authoritative state (multi-user, realtime) is a materially different problem than the prototype's single-user localStorage undo, and needs a deliberate design pass (event log? Postgres history table?) rather than a port. |
-| Trash / restore view | `deleteBoard` already soft-deletes into the `trash` table (`payload` jsonb holds the full board tree), but there's no UI to browse or restore from it. |
-
-Also still open: the `ANTHROPIC_API_KEY` blocker on item 6 (see top of this
-file) — the only thing separating "built" from "verified working" on that
-item.
+| Item | Owner | Notes |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | **User** | Re-checked 2026-09-23: Messages API still returns `authentication_error: API key is invalid`. Regenerate at console.anthropic.com, put it in `.env.local` and Vercel env, then re-run `scripts/_ui-test-item6.mjs`. |
+| Email delivery (SMTP) | **User** | Needs a sending domain — see `SMTP-SETUP.md`. |
+| Undo | Needs a decision | Prototype keeps a single-user localStorage undo stack. With a shared, realtime DB, "undo" has to decide whose changes it reverts and what happens if someone edited the same field since. Options: (a) per-user undo of *your own last change* only, skipped if the field changed since — small, needs an in-memory stack of `{table, id, before, after}` in `BoardGrid`; (b) a Postgres history table + restore — heavier, also gives an activity log. Trash already covers undoing deletes. |
+| Trash auto-empty | Optional | Prototype auto-purged after 30 days. Not built; would be a pg_cron job, but it must also delete storage files, so it'd call storage from an Edge Function rather than plain SQL. |
+| "+ New Deal" target group | Question | Lands in the first group ("Template"). Confirm with the user. |
 
 Do **not** copy `design-reference/CAYMUS 25 Board.dc.html` into the app — it's a
 reference. Match its tokens/behaviour with React.
@@ -369,7 +407,15 @@ reference. Match its tokens/behaviour with React.
   `_verify-realtime`, `_vercel-setup`, `_vercel-fix`, `_ui-test-item3`,
   `_ui-test-item4`, `_ui-test-item7`, `_ui-popover-shot`,
   `_verify-automations`, `_ui-test-item5-9`, `_ui-test-item8`,
-  `_verify-ai-actions`, `_ui-test-item6` (headless CDP checks).
+  `_verify-ai-actions`, `_ui-test-item6`, `_ui-test-newdeal`,
+  `_ui-test-menu-theme`, `_ui-test-updates`, `_verify-trash`,
+  `_ui-test-filter-trash` (headless CDP checks).
+- **Deal name isn't in `textContent`**: it lives in an `<input>`'s value. In
+  headless tests find rows by `r.querySelector('.icell.sticky .cell-input').value`
+  — plain `.cell-input` also matches each row's Notes/Email inputs.
+- **Storage downloads can be stale after a delete**: objects are served with
+  `max-age=3600` via the storage CDN, so `download()` may still return bytes
+  for a removed file. Use `storage.list(prefix)` to check existence.
 - **Vercel API access**: the user supplied a temporary `VERCEL_TOKEN` once (used
   to set env vars + redeploy), then removed it. Not available now — ask if you
   need to touch Vercel programmatically; otherwise a `git push` auto-deploys.
@@ -387,9 +433,10 @@ reference. Match its tokens/behaviour with React.
 End commit messages with:
 
 ```
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01Ny9VCdJmJj1qubanHkJinD
+Co-Authored-By: Claude <model> <noreply@anthropic.com>
 ```
+
+(use whichever model the session is actually running)
 
 End PR descriptions with:
 

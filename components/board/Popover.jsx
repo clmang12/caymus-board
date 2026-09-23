@@ -29,15 +29,17 @@ export default function Popover({ anchorRect, onClose, children, width }) {
     const close = () => onClose();
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) onClose(); };
+    // Scrolling a long list inside the popover must not close it.
+    const onScroll = (e) => { if (!(ref.current && ref.current.contains(e.target))) onClose(); };
     window.addEventListener('keydown', onKey);
     document.addEventListener('mousedown', onDown);
     window.addEventListener('resize', close);
-    window.addEventListener('scroll', close, true);
+    window.addEventListener('scroll', onScroll, true);
     return () => {
       window.removeEventListener('keydown', onKey);
       document.removeEventListener('mousedown', onDown);
       window.removeEventListener('resize', close);
-      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('scroll', onScroll, true);
     };
   }, [onClose]);
 

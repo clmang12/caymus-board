@@ -13,6 +13,8 @@ import GroupSection from './GroupSection';
 import AutomationsPanel from './AutomationsPanel';
 import NotificationsBell from './NotificationsBell';
 import NewDealMenu from './NewDealMenu';
+import FilterMenu from './FilterMenu';
+import TrashPanel from './TrashPanel';
 import BoardCards from './BoardCards';
 import ItemDetailSheet from './ItemDetailSheet';
 import AiPanel from './AiPanel';
@@ -54,6 +56,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
   const sb = useMemo(() => createClient(), []);
   const [tree, setTree] = useState(board);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState({ agent: null, lender: null });
+  const [trashOpen, setTrashOpen] = useState(false);
   const [sort, setSort] = useState(null);
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const [prefsState, setPrefsState] = useState(() => ({
@@ -219,6 +223,9 @@ export default function BoardGrid({ user, board, options, prefs }) {
       groups: t.groups.map((g) => ({ ...g, items: g.items.filter((it) => it.id !== itemId) })),
     }));
     setExpandedIds((s) => { if (!s.has(itemId)) return s; const n = new Set(s); n.delete(itemId); return n; });
+    // A restore brings the item back under the same id; don't serve stale lists.
+    attachmentsLoaded.current.delete(itemId);
+    updatesLoaded.current.delete(itemId);
     deleteItem(sb, itemId).catch((e) => console.error('deleteItem failed', e));
   }, [sb]);
 
@@ -466,10 +473,14 @@ export default function BoardGrid({ user, board, options, prefs }) {
   const q = search.trim().toLowerCase();
 
   const visibleGroups = useMemo(() => {
+    const narrowed = !!(q || filter.agent || filter.lender);
+    const keep = (it) => matchesSearch(it, q)
+      && (!filter.agent || it.agent === filter.agent)
+      && (!filter.lender || (it.lender || []).includes(filter.lender));
     return tree.groups
-      .map((group) => ({ group, items: sortItems((group.items || []).filter((it) => matchesSearch(it, q)), sort) }))
-      .filter(({ items }) => !(q && items.length === 0));
-  }, [tree.groups, q, sort]);
+      .map((group) => ({ group, items: sortItems((group.items || []).filter(keep), sort) }))
+      .filter(({ items }) => !(narrowed && items.length === 0));
+  }, [tree.groups, q, filter, sort]);
 
   let detailItem = null;
   let detailGroupColor = null;
@@ -497,6 +508,7 @@ export default function BoardGrid({ user, board, options, prefs }) {
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search deals" />
           </div>
           <NewDealMenu options={options} onCreate={addNewDeal} />
+          <FilterMenu options={options} filter={filter} onChange={setFilter} />
           <button className="board-btn" onClick={collapseAll}>{allCollapsed ? 'Expand all' : 'Collapse all'}</button>
           <button className="board-btn" onClick={() => setAutomationsOpen(true)}>⚡ Automations</button>
           <button className="board-btn" onClick={() => setAiOpen(true)}>✨ AI Assistant</button>
@@ -505,6 +517,7 @@ export default function BoardGrid({ user, board, options, prefs }) {
             onDismiss={dismissOneNotification}
             onDismissAll={dismissAllNotifications}
           />
+          <button className="board-btn" title="Trash" onClick={() => setTrashOpen(true)}>🗑</button>
           <button className="board-btn" title="Toggle theme" onClick={toggleTheme}>
             {prefsState.theme === 'dark' ? '☀️' : '🌙'}
           </button>
@@ -588,6 +601,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
           onClose={() => setAutomationsOpen(false)}
         />
       )}
+
+      {trashOpen && <TrashPanel sb={sb} onClose={() => setTrashOpen(false)} />}
 
       {aiOpen && (
         <AiPanel
