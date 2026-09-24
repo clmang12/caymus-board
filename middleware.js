@@ -45,6 +45,16 @@ export async function middleware(request) {
     return NextResponse.redirect(to);
   }
 
+  // Local dev convenience: skip the login page entirely (see app/api/dev-login).
+  // Never active in a production build, and off unless .env.local opts in.
+  const devAutoLogin = process.env.NODE_ENV !== 'production' && process.env.DEV_AUTO_LOGIN === '1';
+  if (!user && devAutoLogin && !isApiRoute && !path.startsWith('/auth')) {
+    const to = request.nextUrl.clone();
+    to.pathname = '/api/dev-login';
+    to.search = '?next=' + encodeURIComponent(path === '/login' ? '/' : path + request.nextUrl.search);
+    return NextResponse.redirect(to);
+  }
+
   if (!user && !isAuthRoute && !isApiRoute) {
     const to = request.nextUrl.clone();
     to.pathname = '/login';

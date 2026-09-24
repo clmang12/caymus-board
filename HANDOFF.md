@@ -14,8 +14,9 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   Supabase**, deployed on **Vercel**.
 - **Live:** https://caymus-board.vercel.app — auto-deploys from `main` on every push.
 - Repo: https://github.com/clmang12/caymus-board (private). Branch `main`.
-  `git log --oneline -5` for the real HEAD. The only untracked file should be
-  `app/api/dev-login/` — local-only on purpose, see "Signing in".
+  `git log --oneline -5` for the real HEAD. Tree should be clean.
+- **Localhost has no login page** while `DEV_AUTO_LOGIN=1` is in
+  `.env.local` — see "Signing in". Production always requires login.
 - **All 9 PORTING.md items are DONE and deployed**: board grid, inline
   editing, subitem CRUD, sidebar board CRUD + row drag, notifications,
   AI assistant drawer, file attachments, mobile card view, automations.
@@ -247,10 +248,15 @@ one-time login per browser.
 cookie for headless/automated testing. `DEV_EMAIL=clmang@gmail.com node
 scripts/_mint-session.mjs` prints the exact `sb-<ref>-auth-token` cookie value.
 
-**3. Local only: `http://localhost:3000/api/dev-login`.** Mints a real session
-for `clmang@gmail.com` and redirects to the board — no login screen locally.
-`app/api/dev-login/route.js` is **deliberately uncommitted**; it also returns
-404 when `NODE_ENV=production`. Delete it to get the login screen back.
+**3. Local: no login at all.** With `DEV_AUTO_LOGIN=1` in `.env.local`,
+`middleware.js` sends signed-out requests (including `/login`) to
+`app/api/dev-login`, which mints a real Supabase session for
+`clmang@gmail.com` and redirects back to the requested page (same-origin
+only). It's a real session, so RLS, realtime and writes all work. Both the
+middleware branch and the route are dead in a production build
+(`NODE_ENV=production`) regardless of the flag — verified with `next start`:
+`/` → `/login`, `/api/dev-login` → 404. Remove the flag (restart dev) to get
+the login page back locally. Never add `DEV_AUTO_LOGIN` to Vercel.
 
 A Supabase auth user for `clmang@gmail.com` already exists (created during
 setup; role `member`).
