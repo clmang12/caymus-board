@@ -35,8 +35,9 @@ export async function POST(request) {
       .filter((b) => b.type === 'text').map((b) => b.text).join('');
     return Response.json({ completion: text, usage: result.usage });
   } catch (err) {
+    // The SDK's err.message is "<status> <raw JSON body>"; prefer the API's own sentence.
     return Response.json(
-      { error: err?.message ?? 'Claude request failed' },
+      { error: err?.error?.error?.message ?? err?.message ?? 'Claude request failed' },
       { status: err?.status ?? 500 }
     );
   }

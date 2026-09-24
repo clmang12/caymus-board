@@ -26,11 +26,11 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   "Session 4" below.
 - Auth works end to end **except email delivery** (Supabase built-in SMTP is
   rate-limited; custom SMTP not set up — see "Signing in" below for the bypass).
-- **One open blocker**: `ANTHROPIC_API_KEY` (.env.local + Vercel) is rejected
-  by Anthropic as invalid — the AI drawer (item 6) is fully built and wired
-  but can't complete a real request until it's regenerated at
-  console.anthropic.com. Everything short of that boundary is verified (see
-  below).
+- **One open blocker (AI drawer, item 6)**: a new, *valid* `ANTHROPIC_API_KEY`
+  went into `.env.local` on 2026-09-23, but the Anthropic account has **no
+  credits** ("credit balance is too low") — add credits under Plans & Billing.
+  The Vercel env var still has the **old, invalid** key and must be replaced
+  in the Vercel dashboard (no Vercel access from here), then redeploy.
 - Every prototype feature is now ported, including undo (per-user; see
   Session 4). Remaining items need the user: API key, SMTP.
 
@@ -394,7 +394,7 @@ view. Remaining:
 
 | Item | Owner | Notes |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | **User** | Re-checked 2026-09-23: Messages API still returns `authentication_error: API key is invalid`. Regenerate at console.anthropic.com, put it in `.env.local` and Vercel env, then re-run `scripts/_ui-test-item6.mjs`. |
+| AI drawer credits + Vercel key | **User** | New key (2026-09-23) authenticates but the account has no credits. (1) Add credits at console.anthropic.com → Plans & Billing. (2) Vercel → caymus-board → Settings → Environment Variables → replace `ANTHROPIC_API_KEY` (all 3 environments) → redeploy. Then re-run `scripts/_ui-test-item6.mjs` — it currently only asserts the error path; once a real reply comes back, extend it to apply a proposed action. |
 | Email delivery (SMTP) | **User** | Needs a sending domain — see `SMTP-SETUP.md`. |
 | Undo history across reloads / activity log | Optional | Undo is in-memory per tab. A Postgres history table would make it survive reloads and give monday's "Activity Log" tab. |
 | Trash auto-empty | Optional | Prototype auto-purged after 30 days. Not built; would be a pg_cron job, but it must also delete storage files, so it'd call storage from an Edge Function rather than plain SQL. |
