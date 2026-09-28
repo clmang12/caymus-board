@@ -181,7 +181,7 @@
 .irow { display: grid; background: var(--s1); border-bottom: 1px solid var(--bd); }
 .irow:hover { background: var(--hov); }
 .icell {
-  min-width: 0; border-right: 1px solid var(--bd); height: 36px;
+  min-width: 0; border-right: 1px solid var(--bd); height: 38px;
   display: flex; align-items: center; font-size: 13px;
 }
 /* Per-row group color bar, split by the row dividers (reference: 6px on the name cell). */
@@ -204,6 +204,7 @@
 }
 .cell-input:hover { border-color: var(--bd3); }
 .cell-input:focus { border-color: var(--blue); background: var(--s1); }
+.name-cell .cell-input { font-size: 13.5px; }
 .cell-input.email { color: var(--blue); }
 .cell-input.num { text-align: right; }
 
@@ -211,7 +212,7 @@
 .label-fill { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12.5px; font-weight: 500; padding: 0 6px; text-align: center; }
 .chip { background: var(--s3); color: var(--tx2); font-size: 11.5px; border-radius: 10px; padding: 2px 8px; white-space: nowrap; }
 
-.name-cell { display: flex; align-items: center; gap: 4px; padding: 0 6px 0 2px; height: 36px; }
+.name-cell { display: flex; align-items: center; gap: 4px; padding: 0 6px 0 2px; height: 38px; }
 .name-expand { background: none; border: none; cursor: pointer; padding: 2px; color: var(--tx2); display: flex; }
 .name-expand svg { transition: transform .15s; }
 .row-drag {
@@ -233,7 +234,7 @@
 /* row drag-and-drop between groups */
 .irow-wrap { position: relative; }
 .irow-wrap.row-expanded::before {
-  content: ''; position: absolute; left: 16px; top: 36px; bottom: 0; width: 2px;
+  content: ''; position: absolute; left: 16px; top: 38px; bottom: 0; width: 2px;
   background: var(--group-color); z-index: 1; pointer-events: none;
 }
 .irow-wrap.row-expanded::after {
