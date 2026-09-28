@@ -180,12 +180,12 @@
 /* body row */
 .irow { display: grid; background: var(--s1); border-bottom: 1px solid var(--bd); }
 .irow:hover { background: var(--hov); }
-.irow:last-child { border-bottom: none; }
 .icell {
   min-width: 0; border-right: 1px solid var(--bd); height: 36px;
   display: flex; align-items: center; font-size: 13px;
 }
-.icell.sticky { background: var(--s1); }
+/* Per-row group color bar, split by the row dividers (reference: 6px on the name cell). */
+.icell.sticky { background: var(--s1); border-left: 6px solid var(--group-color); }
 .irow:hover .icell.sticky { background: var(--hov); }
 .icell.center { justify-content: center; }
 .icell.right { justify-content: flex-end; }
@@ -246,10 +246,13 @@
 .grid-box.row-drop-here { outline: 2px dashed var(--blue); outline-offset: -2px; }
 
 /* add-deal row */
-.add-row { display: flex; align-items: center; background: var(--s1); border-top: 1px solid var(--bd); }
+.add-row { display: flex; align-items: stretch; background: var(--s1); border-top: 1px solid var(--bd); overflow: hidden; }
+.add-row-bar { flex: 0 0 6px; }
+/* the deal row above already draws the divider */
+.irow-wrap + .add-row { border-top: none; }
 .add-row input {
-  flex: 0 0 320px; border: 1px solid transparent; border-radius: 4px; background: transparent;
-  font-family: inherit; font-size: 13px; color: var(--tx); padding: 9px 10px; outline: none; margin-left: 26px;
+  flex: 0 0 320px; align-self: center; border: 1px solid transparent; border-radius: 4px; background: transparent;
+  font-family: inherit; font-size: 13px; color: var(--tx); padding: 9px 10px; outline: none; margin-left: 20px;
 }
 .add-row input:focus { border-color: var(--blue); background: var(--s1); }
 

@@ -65,7 +65,7 @@ export default function GroupSection({
       {open && (
         <div
           className={'grid-box' + (dragItemId && rowOver === '__end__' ? ' row-drop-here' : '')}
-          style={{ borderColor: softColor(group.color), borderLeft: `3px solid ${group.color}` }}
+          style={{ borderColor: softColor(group.color) }}
           onDragOver={(e) => { if (dragItemId) { e.preventDefault(); setRowOver('__end__'); } }}
           onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setRowOver(null); }}
           onDrop={(e) => {
@@ -141,6 +141,7 @@ export default function GroupSection({
 
           {/* add deal */}
           <div className="add-row">
+            <span className="add-row-bar" style={{ background: softColor(group.color) }} />
             <input
               placeholder="+ Add deal"
               onKeyDown={(e) => {
