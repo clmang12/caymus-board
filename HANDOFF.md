@@ -71,10 +71,23 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   - **Separate dev build dir:** `npm run dev` sets `NEXT_DIST_DIR=.next-dev`
     (`next.config.mjs` reads it) so dev and `next build` don't clobber each
     other. `.next-dev/` is gitignored.
-- **Known issue:** the condition panel's `date` column is an uncontrolled
-  `<input type="date" defaultValue="">` wired to nothing — values entered
-  there are not saved. The `due_date` input beside it does save. Either wire
-  it to a real field (needs a column in `subitems`) or remove it.
+- **Condition "Date" column = status date.** New column `subitems.cond_date`
+  (added in `schema.sql`, applied with `npm run db:schema`). The
+  `subDateStamp` automation ("When a subitem condition changes, set its date
+  to the current date") now stamps `cond_date` with the Toronto calendar day.
+  It used to overwrite `due_date`, which was a porting bug: the prototype
+  stamps the separate `date` field. An update that sets `cond_date` itself
+  (manual edit, undo) keeps its value. Undo of a status change restores
+  `cond_date`. Due Date is now only ever set by hand (or by the AI
+  `set_condition` action's `date`, which still means due date). Old due dates
+  stamped by the previous behavior are still in `due_date`; they can't be told
+  apart from real ones, so they were left alone.
+- Tests: `scripts/_verify-automations.mjs` checks the new stamp;
+  `scripts/_ui-test-cond-date.mjs` (new, headless) checks stamp → panel →
+  undo → manual edit. `_ui-test-undo.mjs` now looks for `.action-toast` (the
+  undo message's current class) and expands Leads for the run if the user has
+  it collapsed. Both UI tests need the dev server on :3000. Fixed two React
+  warnings in `SubitemPanel.jsx` (unkeyed cells, read-only row checkbox).
 
 ### Session 4 (2026-09-11 → 09-23) — post-PORTING features
 All user-requested, all deployed, each with a headless test (gitignored):

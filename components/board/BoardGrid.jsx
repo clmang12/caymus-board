@@ -307,8 +307,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
     const sub = findItem(itemId)?.item.subitems?.find((s) => s.id === subitemId);
     if (sub) {
       const before = Object.fromEntries(Object.keys(patch).map((k) => [k, sub[k] ?? null]));
-      // The subDateStamp automation rewrites due_date when cond changes; put it back too.
-      if ('cond' in patch && !('due_date' in patch)) before.due_date = sub.due_date ?? null;
+      // The subDateStamp automation stamps cond_date when cond changes; put it back too.
+      if ('cond' in patch && !('cond_date' in patch)) before.cond_date = sub.cond_date ?? null;
       pushUndo({ kind: 'sub', itemId, subitemId, before, after: patch, name: sub.name, label: `condition "${sub.name}"` });
     }
     applySubPatch(itemId, subitemId, patch);

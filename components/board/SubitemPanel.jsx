@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import Popover from './Popover';
 import SyncedInput from './SyncedInput';
 import { labelColor, optionList, EMPTY_COLOR } from './columns';
@@ -31,6 +31,7 @@ function SubRow({ sub, options, groupColor, onCommit, onDelete, onNotify, isSele
         <input
           type="checkbox"
           checked={isSelected}
+          readOnly
           aria-label={`Select ${sub.name}`}
           onMouseDown={(e) => { e.preventDefault(); onToggleSelect(sub.id, e.shiftKey); }}
           onClick={(e) => e.preventDefault()}
@@ -65,7 +66,11 @@ function SubRow({ sub, options, groupColor, onCommit, onDelete, onNotify, isSele
         </span>
       </div>
     ),
-    date: <div className="sub-date-cell"><input type="date" className="sub-date" aria-label={`Date for ${sub.name}`} defaultValue="" /></div>,
+    date: (
+      <div className="sub-date-cell" title="Set automatically when the condition status changes">
+        <input type="date" className="sub-date" aria-label={`Status date for ${sub.name}`} value={sub.cond_date ?? ''} onChange={(e) => onCommit({ cond_date: e.target.value || null })} />
+      </div>
+    ),
     notes: (
       <div style={{ padding: '0 4px' }}>
         <SyncedInput
@@ -98,7 +103,7 @@ function SubRow({ sub, options, groupColor, onCommit, onDelete, onNotify, isSele
 
   return (
     <div className={'subs-row' + (isSelected ? ' selected' : '')} style={{ gridTemplateColumns }}>
-      {columnOrder.map((key) => cells[key])}
+      {columnOrder.map((key) => <Fragment key={key}>{cells[key]}</Fragment>)}
 
       {anchor && (
         <Popover anchorRect={anchor} onClose={() => setAnchor(null)} width={200}>

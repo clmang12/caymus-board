@@ -97,6 +97,9 @@ create table if not exists subitems (
   position   int  not null default 0,
   created_at timestamptz not null default now()
 );
+-- "Date" column in the condition panel: day the condition status last changed
+-- (stamped by subitems_automations when subDateStamp is on; editable by hand).
+alter table subitems add column if not exists cond_date date;
 create index if not exists subitems_item_idx on subitems(item_id, position);
 
 -- Purch / Refi condition checklists.
@@ -335,15 +338,19 @@ create trigger items_automations_trg before update on items
   for each row execute function items_automations();
 
 -- "When a subitem condition changes, set its date to the current date."
+-- Stamps cond_date (the panel's Date column), never due_date. An update that
+-- sets cond_date itself (undo, manual edit) keeps its value. The team is in
+-- Ontario, so "today" is the Toronto calendar day, not UTC.
 create or replace function subitems_automations() returns trigger
 language plpgsql as $$
 declare
   v_board_id uuid;
 begin
-  if new.cond is distinct from old.cond then
+  if new.cond is distinct from old.cond
+     and new.cond_date is not distinct from old.cond_date then
     select board_id into v_board_id from items where id = new.item_id;
     if v_board_id is not null and automation_enabled(v_board_id, 'subDateStamp') then
-      new.due_date := current_date;
+      new.cond_date := (now() at time zone 'America/Toronto')::date;
     end if;
   end if;
   return new;
