@@ -24,11 +24,14 @@ export default function UpdatesPanel({ updates, onPost }) {
         <div className="updates-compose">
           <textarea
             value={draft}
-            placeholder="Write an update…"
+            placeholder="Write an update and mention others with @"
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit(); }}
           />
-          <button className="board-btn board-btn-primary" onClick={submit} disabled={!draft.trim()}>Update</button>
+          <div className="updates-tools">
+            <span>B</span><i>/</i><s>S</s><span>&lt;&gt;</span><span>=</span><span>1.</span><span className="updates-tool-divider" /><span>⌕</span><span>Default⌄</span><span>A</span><span className="updates-sparkle">✦</span>
+            <button className="board-btn board-btn-primary" onClick={submit} disabled={!draft.trim()}>Update</button>
+          </div>
         </div>
 
         {loading && list.length === 0 && <div className="files-empty">Loading…</div>}

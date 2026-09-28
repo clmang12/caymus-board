@@ -15,8 +15,10 @@ export default function GroupSection({
   sort, onSort, expandedIds, onToggleExpand, onAddItem,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
   attachmentsByItem, onUploadAttachment, onDeleteAttachment, onDownloadAttachment,
-  updatesByItem, onPostUpdate,
+  updatesByItem, onPostUpdate, onOpenUpdates,
   onDuplicateItem, onDeleteItem,
+  onNotify,
+  celebrateApproval,
   dragItemId, onRowDragStart, onRowDragEnd, onMoveRow,
 }) {
   const [dragKey, setDragKey] = useState(null);
@@ -49,7 +51,10 @@ export default function GroupSection({
 
   return (
     <section className="grp">
-      <div className="grp-head">
+      <div
+        className={'grp-head' + (collapsed ? ' grp-head-collapsed' : '')}
+        style={collapsed ? { '--group-color': group.color } : undefined}
+      >
         <button className="grp-toggle" onClick={() => onToggleCollapsed(group.id)} style={{ color: group.color }}>
           <Chevron open={open} color={group.color} />
         </button>
@@ -60,7 +65,7 @@ export default function GroupSection({
       {open && (
         <div
           className={'grid-box' + (dragItemId && rowOver === '__end__' ? ' row-drop-here' : '')}
-          style={{ borderColor: softColor(group.color), borderLeft: `4px solid ${group.color}` }}
+          style={{ borderColor: softColor(group.color), borderLeft: `3px solid ${group.color}` }}
           onDragOver={(e) => { if (dragItemId) { e.preventDefault(); setRowOver('__end__'); } }}
           onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setRowOver(null); }}
           onDrop={(e) => {
@@ -117,8 +122,11 @@ export default function GroupSection({
               onDownloadAttachment={onDownloadAttachment}
               updates={updatesByItem[it.id]}
               onPostUpdate={(body) => onPostUpdate(it.id, body)}
+              onOpenUpdates={onOpenUpdates}
               onDuplicateItem={onDuplicateItem}
               onDeleteItem={onDeleteItem}
+              onNotify={onNotify}
+              celebrateApproval={celebrateApproval === it.id}
               dragging={dragItemId === it.id}
               dropBefore={!!dragItemId && dragItemId !== it.id && rowOver === it.id}
               onDragStartRow={() => onRowDragStart(it.id)}

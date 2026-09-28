@@ -4,9 +4,9 @@ import { createClient } from '@/lib/supabase/client';
 import { subscribeToBoard } from '@/lib/data/realtime';
 import { getBoardTree, updateItem, createItem, duplicateItem, deleteItem, setItemPositions } from '@/lib/data/boards';
 import { findItemTrashId, restoreFromTrash } from '@/lib/data/trash';
-import { addSubitem, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
+import { addSubitem, insertSubitems, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
 import { listAttachments, uploadAttachment, deleteAttachment, getDownloadUrl } from '@/lib/data/attachments';
-import { listUpdates, postUpdate } from '@/lib/data/updates';
+import { listUpdates, postUpdate, deleteUpdate } from '@/lib/data/updates';
 import { listAutomations, setAutomation } from '@/lib/data/automations';
 import { listNotifications, dismissNotification, dismissAll } from '@/lib/data/notifications';
 import { savePrefs } from '@/lib/data/prefs';
@@ -19,7 +19,7 @@ import TrashPanel from './TrashPanel';
 import BoardCards from './BoardCards';
 import ItemDetailSheet from './ItemDetailSheet';
 import AiPanel from './AiPanel';
-import { resolveColumns, DEFAULT_ORDER, COL_BY_KEY } from './columns';
+import { resolveColumns, DEFAULT_ORDER, COL_BY_KEY, conditionProgress } from './columns';
 import './board.css';
 
 const MOBILE_QUERY = '(max-width: 767px)';
@@ -39,6 +39,7 @@ function matchesSearch(item, q) {
 function sortItems(items, sort) {
   if (!sort) return items;
   const val = (it) => {
+    if (sort.key === 'conditions_progress') return conditionProgress(it)?.percentage ?? null;
     let v = it[sort.key];
     if (Array.isArray(v)) v = v.join(', ');
     if (sort.key === 'volume') return v == null ? null : Number(v);
@@ -79,6 +80,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
   useEffect(() => { treeRef.current = tree; }, [tree]);
 
   const [dragItemId, setDragItemId] = useState(null);
+  const [celebrateApprovalItemId, setCelebrateApprovalItemId] = useState(null);
+  const celebrationTimer = useRef(null);
 
   const cols = useMemo(() => resolveColumns(prefsState), [prefsState]);
 
@@ -188,6 +191,11 @@ export default function BoardGrid({ user, board, options, prefs }) {
   const commitItem = useCallback((itemId, patch) => {
     const f = findItem(itemId);
     if (f) {
+      if (patch.status === 'Approved' && f.item.status !== 'Approved') {
+        setCelebrateApprovalItemId(itemId);
+        clearTimeout(celebrationTimer.current);
+        celebrationTimer.current = setTimeout(() => setCelebrateApprovalItemId(null), 1800);
+      }
       const before = Object.fromEntries(Object.keys(patch).map((k) => [k, f.item[k] ?? null]));
       const fields = Object.keys(patch).map((k) => COL_BY_KEY[k]?.label || k).join(', ');
       pushUndo({ kind: 'item', itemId, before, after: patch, groupId: f.group.id, name: f.item.name, label: `${fields} on "${f.item.name}"` });
@@ -307,9 +315,11 @@ export default function BoardGrid({ user, board, options, prefs }) {
   }, [applySubPatch, pushUndo]);
 
   const removeSubitem = useCallback((itemId, subitemId) => {
+    const sub = findItem(itemId)?.item.subitems?.find((row) => row.id === subitemId);
     patchSubs(itemId, (subs) => subs.filter((s) => s.id !== subitemId));
     deleteSubitem(sb, subitemId).catch((e) => console.error('deleteSubitem failed', e));
-  }, [sb, patchSubs]);
+    if (sub) pushUndo({ kind: 'sub-delete', itemId, sub, name: sub.name, label: `delete condition "${sub.name}"` });
+  }, [sb, patchSubs, pushUndo]);
 
   const createSubitem = useCallback(async (itemId, name) => {
     try {
@@ -318,8 +328,9 @@ export default function BoardGrid({ user, board, options, prefs }) {
         subs.some((s) => s.id === created.id)
           ? subs
           : [...subs, created].sort((a, b) => a.position - b.position));
+      pushUndo({ kind: 'sub-create', itemId, subs: [created], name: created.name, label: `add condition "${created.name}"` });
     } catch (e) { console.error('addSubitem failed', e); }
-  }, [sb, patchSubs]);
+  }, [sb, patchSubs, pushUndo]);
 
   const applyChecklist = useCallback(async (itemId, deal) => {
     try {
@@ -329,8 +340,9 @@ export default function BoardGrid({ user, board, options, prefs }) {
         const seen = new Set(subs.map((s) => s.id));
         return [...subs, ...rows.filter((r) => !seen.has(r.id))].sort((a, b) => a.position - b.position);
       });
+      pushUndo({ kind: 'sub-create', itemId, subs: rows, name: deal, label: `apply ${deal} checklist` });
     } catch (e) { console.error('applyTemplate failed', e); }
-  }, [sb, board.id, patchSubs]);
+  }, [sb, board.id, patchSubs, pushUndo]);
 
   // ---- attachments (lazy per item, not in the tree query or realtime) ----
   const [attachmentsByItem, setAttachmentsByItem] = useState({});
@@ -373,8 +385,9 @@ export default function BoardGrid({ user, board, options, prefs }) {
         ...m,
         [itemId]: { loading: false, list: [created, ...((m[itemId] && m[itemId].list) || [])] },
       }));
+      pushUndo({ kind: 'update-create', itemId, update: created, label: 'post update' });
     } catch (e) { console.error('postUpdate failed', e); }
-  }, [sb, user.id]);
+  }, [sb, user.id, pushUndo]);
 
   // ---- "+ New Deal" quick-create: picks a deal type, drops the item in the
   // first non-"Template" group (as the prototype did), and auto-applies the
@@ -438,6 +451,30 @@ export default function BoardGrid({ user, board, options, prefs }) {
         if (!sub) return note(`Can't undo: condition "${e.name}" no longer exists`);
         if (Object.keys(e.after).some((k) => !same(sub[k], e.after[k]))) return note(`Skipped: condition "${e.name}" was changed again since`);
         applySubPatch(e.itemId, e.subitemId, e.before);
+      } else if (e.kind === 'sub-create') {
+        if (!f) return note(`Can't undo: deal "${e.itemId}" no longer exists`);
+        const ids = new Set(e.subs.map((sub) => sub.id));
+        const current = f.item.subitems || [];
+        if (!e.subs.some((sub) => current.some((row) => row.id === sub.id))) return note(`Conditions from ${e.label} are already gone`);
+        await Promise.all(e.subs.map((sub) => deleteSubitem(sb, sub.id)));
+        patchSubs(e.itemId, (subs) => subs.filter((sub) => !ids.has(sub.id)));
+      } else if (e.kind === 'sub-delete') {
+        if (!f) return note(`Can't undo: deal "${e.itemId}" no longer exists`);
+        if ((f.item.subitems || []).some((sub) => sub.id === e.sub.id)) return note(`Condition "${e.name}" already exists`);
+        const [restored] = await insertSubitems(sb, [{ ...e.sub, item_id: e.itemId }]);
+        patchSubs(e.itemId, (subs) => [...subs, restored].sort((a, b) => a.position - b.position));
+      } else if (e.kind === 'update-create') {
+        await deleteUpdate(sb, e.update.id);
+        setUpdatesByItem((m) => ({
+          ...m,
+          [e.itemId]: { loading: false, list: (m[e.itemId]?.list || []).filter((update) => update.id !== e.update.id) },
+        }));
+      } else if (e.kind === 'attachment-create') {
+        await deleteAttachment(sb, e.attachment.id, e.attachment.storage_path);
+        setAttachmentsByItem((m) => ({
+          ...m,
+          [e.itemId]: { loading: false, list: (m[e.itemId]?.list || []).filter((attachment) => attachment.id !== e.attachment.id) },
+        }));
       } else if (e.kind === 'move') {
         if (!f || f.group.id !== e.toGroupId) return note(`Skipped: "${e.name}" was moved again since`);
         if (!treeRef.current.groups.some((g) => g.id === e.fromGroupId)) return note(`Can't undo: its old group is gone`);
@@ -455,6 +492,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
       note(`Undid ${e.label}`);
     } catch (err) {
       console.error('undo failed', err);
+      undoStack.current.push(e);
+      setUndoTop(e.label);
       note(`Undo failed: ${err.message || err}`);
     } finally {
       undoBusy.current = false;
@@ -480,8 +519,9 @@ export default function BoardGrid({ user, board, options, prefs }) {
         ...m,
         [itemId]: { loading: false, list: [created, ...((m[itemId] && m[itemId].list) || [])] },
       }));
+      pushUndo({ kind: 'attachment-create', itemId, attachment: created, label: `upload "${created.filename}"` });
     } catch (e) { console.error('uploadAttachment failed', e); }
-  }, [sb, user.id]);
+  }, [sb, user.id, pushUndo]);
 
   const removeAttachmentFor = useCallback((itemId, attachmentId, storagePath) => {
     setAttachmentsByItem((m) => ({
@@ -507,6 +547,10 @@ export default function BoardGrid({ user, board, options, prefs }) {
     setDetailItemId(itemId);
     loadAttachments(itemId);
     loadUpdates(itemId);
+  }, [loadAttachments, loadUpdates]);
+  const openUpdates = useCallback((itemId) => {
+    loadUpdates(itemId);
+    loadAttachments(itemId);
   }, [loadAttachments, loadUpdates]);
   const closeDetail = useCallback(() => setDetailItemId(null), []);
 
@@ -652,8 +696,8 @@ export default function BoardGrid({ user, board, options, prefs }) {
           <button className="board-btn" title="Toggle theme" onClick={toggleTheme}>
             {prefsState.theme === 'dark' ? '☀️' : '🌙'}
           </button>
-          {undoNote && <span className="undo-note">{undoNote}</span>}
         </div>
+        {undoNote && <div className="action-toast" role="status">{undoNote}</div>}
 
         {isMobile ? (
           <BoardCards
@@ -692,8 +736,11 @@ export default function BoardGrid({ user, board, options, prefs }) {
               onDownloadAttachment={downloadAttachment}
               updatesByItem={updatesByItem}
               onPostUpdate={postUpdateFor}
+              onOpenUpdates={openUpdates}
               onDuplicateItem={duplicateItemFor}
               onDeleteItem={removeItem}
+              onNotify={note}
+              celebrateApproval={celebrateApprovalItemId}
               dragItemId={dragItemId}
               onRowDragStart={setDragItemId}
               onRowDragEnd={() => setDragItemId(null)}
@@ -746,6 +793,7 @@ export default function BoardGrid({ user, board, options, prefs }) {
           onClose={() => setAiOpen(false)}
         />
       )}
+
     </main>
   );
 }

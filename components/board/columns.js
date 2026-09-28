@@ -4,20 +4,21 @@
 // set changes.
 
 export const COLUMNS = [
-  { key: 'name',       label: 'Deal / Client',   type: 'text',     width: 320, align: 'left',  sticky: true, field: null },
-  { key: 'agent',      label: 'Agent',           type: 'label',    width: 130, align: 'center', field: 'agent', pill: true },
-  { key: 'deal',       label: 'Deal Type',       type: 'dropdown', width: 120, align: 'center', field: 'deal' },
-  { key: 'close_date', label: 'Closing Date',    type: 'date',     width: 130, align: 'center', field: null },
-  { key: 'lender',     label: 'Lender',          type: 'multi',    width: 160, align: 'center', field: 'lender' },
-  { key: 'volume',     label: 'Volume',          type: 'currency', width: 130, align: 'right',  field: null },
+  { key: 'name',       label: 'Deal / Client',   type: 'text',     width: 340, align: 'left',  sticky: true, field: null },
+  { key: 'conditions_progress', label: 'Conditions Progress', type: 'progress', width: 150, align: 'center', field: null },
+  { key: 'agent',      label: 'Agent',           type: 'label',    width: 110, align: 'center', field: 'agent', pill: true },
+  { key: 'deal',       label: 'Deal',            type: 'dropdown', width: 110, align: 'center', field: 'deal' },
+  { key: 'close_date', label: 'Closing Date',    type: 'date',     width: 132, align: 'center', field: null },
+  { key: 'lender',     label: 'Lender',          type: 'multi',    width: 150, align: 'center', field: 'lender' },
+  { key: 'volume',     label: 'Volume',          type: 'currency', width: 120, align: 'right',  field: null },
   { key: 'status',     label: 'Status',          type: 'label',    width: 130, align: 'center', field: 'status' },
-  { key: 'appraisal',  label: 'Appraisal',       type: 'label',    width: 120, align: 'center', field: 'appraisal' },
-  { key: 'appraiser',  label: 'Appraiser',       type: 'dropdown', width: 150, align: 'center', field: 'appraiser' },
+  { key: 'appraisal',  label: 'Appraisal',       type: 'label',    width: 132, align: 'center', field: 'appraisal' },
+  { key: 'appraiser',  label: 'Appraiser',       type: 'dropdown', width: 140, align: 'center', field: 'appraiser' },
   { key: 'instructed', label: 'Instructed',      type: 'label',    width: 110, align: 'center', field: 'instructed' },
   { key: 'broker',     label: 'Broker Complete', type: 'label',    width: 140, align: 'center', field: 'broker' },
   { key: 'compliance', label: 'Compliance',      type: 'label',    width: 120, align: 'center', field: 'compliance' },
-  { key: 'notes',      label: 'Notes',           type: 'text',     width: 200, align: 'left',  field: null },
-  { key: 'email',      label: 'Email',           type: 'text',     width: 190, align: 'left',  field: null },
+  { key: 'notes',      label: 'Notes',           type: 'text',     width: 170, align: 'left',  field: null },
+  { key: 'email',      label: 'Email',           type: 'text',     width: 180, align: 'left',  field: null },
 ];
 
 export const COL_BY_KEY = Object.fromEntries(COLUMNS.map((c) => [c.key, c]));
@@ -31,6 +32,10 @@ export const MIN_COL_WIDTH = 72;
 export function resolveColumns(prefs = {}) {
   const savedOrder = Array.isArray(prefs.colOrder) ? prefs.colOrder.filter((k) => COL_BY_KEY[k]) : [];
   const order = [...savedOrder, ...DEFAULT_ORDER.filter((k) => !savedOrder.includes(k))];
+  if (!savedOrder.includes('conditions_progress')) {
+    order.splice(order.indexOf('conditions_progress'), 1);
+    order.splice(order.indexOf('name') + 1, 0, 'conditions_progress');
+  }
   const widths = { ...DEFAULT_WIDTHS, ...(prefs.colWidths || {}) };
   return order.map((key) => ({ ...COL_BY_KEY[key], width: Math.max(MIN_COL_WIDTH, widths[key] || COL_BY_KEY[key].width) }));
 }
@@ -45,6 +50,24 @@ export function labelColor(options, field, value) {
   const list = options?.[field] || [];
   const hit = list.find(([l]) => l === value);
   return (hit && hit[1]) || EMPTY_COLOR;
+}
+
+export function conditionProgress(item, options) {
+  const subitems = item.subitems || [];
+  if (!subitems.length) return null;
+  const counts = new Map();
+  subitems.forEach((subitem) => {
+    const status = subitem.cond || 'No status';
+    counts.set(status, (counts.get(status) || 0) + 1);
+  });
+  const statusOrder = new Map((options?.cond || []).map(([label], index) => [label, index]));
+  const statuses = [...counts].map(([status, count]) => ({
+    status,
+    count,
+    color: labelColor(options, 'cond', status),
+  })).sort((a, b) => (statusOrder.get(a.status) ?? Infinity) - (statusOrder.get(b.status) ?? Infinity));
+  const accepted = counts.get('Accepted') || 0;
+  return { accepted, total: subitems.length, percentage: (accepted / subitems.length) * 100, statuses };
 }
 
 export function optionList(options, field) {

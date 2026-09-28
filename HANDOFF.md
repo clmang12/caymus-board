@@ -1,6 +1,6 @@
 # HANDOFF — CAYMUS Board
 
-Session state as of 2026-09-23 (session 4). Read this first when
+Session state as of 2026-09-28 (session 5). Read this first when
 resuming in a new Claude Code / Claude for VS Code window. Companion docs:
 `README.md` (overview), `PORTING.md` (all 9 items — now done, see below),
 `DEPLOY.md` (Vercel), `SMTP-SETUP.md` (email), `design-reference/README.md`
@@ -34,6 +34,47 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   in the Vercel dashboard (no Vercel access from here), then redeploy.
 - Every prototype feature is now ported, including undo (per-user; see
   Session 4). Remaining items need the user: API key, SMTP.
+
+### Session 5 (2026-09-28) — reference styling + condition status progress
+- Sidebar styling in `components/board/board.css` now matches the standalone
+  reference: cool gray panel (`#f7f8fc`), pale blue selected navigation row,
+  muted inactive labels, and Figtree sizing/weights. Grid headers use the same
+  light panel color.
+- `components/board/columns.js` aligns shared deal-column widths and labels to
+  the reference and adds a 150px `Conditions Progress` column after `Deal /
+  Client`. `resolveColumns` also inserts it after the name column for users
+  whose saved order predates the new key.
+- `conditionProgress(item, options)` groups subitems by their condition status.
+  `ItemRow.jsx` renders proportional segments in field-option order, colored
+  from the board's `cond` field options; unknown/blank statuses use the neutral
+  fallback. The accessible label and tooltip list each status and count.
+  Clicking the header sorts by accepted share. No subitems means a blank cell.
+- Prototype-only calculated `Progress` and `Formula` columns are still not in
+  the app data model and were not added. Current app columns are the 14 deal
+  fields plus `Conditions Progress`.
+- Local preview: `http://localhost:3000` (Next dev server was running at handoff;
+  restart with `npm --prefix /Users/lang/Documents/Monday/caymus-app run dev --
+  --hostname 127.0.0.1` if needed). Browser inspection confirmed mixed statuses
+  render with their configured colors (for example Requested gray, Received
+  amber, Accepted green). Editor diagnostics reported no errors. No full build
+  or test suite was run for these visual changes.
+- Also landed in this commit (work from before this session, previously
+  uncommitted):
+  - **Undo for deleted conditions and updates** — `BoardGrid.jsx` restores via
+    new `insertSubitems` (`lib/data/subitems.js`) and removes via
+    `deleteUpdate` (`lib/data/updates.js`).
+  - **Condition panel rework** (`SubitemPanel.jsx`): shift-click
+    multi-select, select-all, resizable + drag-to-reorder columns, delete
+    with an Undo toast.
+  - **Deal activity timeline** (`ItemRow.jsx`): deal created / update posted /
+    file uploaded. `getBoardTree` now selects `created_at`, `updated_at`.
+  - **Separate dev build dir:** `npm run dev` sets `NEXT_DIST_DIR=.next-dev`
+    (`next.config.mjs` reads it) so dev and `next build` don't clobber each
+    other. `.next-dev/` is gitignored.
+- **Known issue:** the condition panel's `date` column is an uncontrolled
+  `<input type="date" defaultValue="">` wired to nothing — values entered
+  there are not saved. The `due_date` input beside it does save. Either wire
+  it to a real field (needs a column in `subitems`) or remove it.
 
 ### Session 4 (2026-09-11 → 09-23) — post-PORTING features
 All user-requested, all deployed, each with a headless test (gitignored):
