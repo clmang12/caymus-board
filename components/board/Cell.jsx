@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import Popover from './Popover';
+import { AddOptionContext } from './OptionsContext';
 import SyncedInput from './SyncedInput';
 import {
   labelColor, optionList, fmtCurrency, parseCurrency, fmtDate, EMPTY_COLOR,
@@ -11,8 +12,72 @@ const commitOnEnter = (e) => {
   if (e.key === 'Escape') { e.currentTarget.value = e.currentTarget.defaultValue; e.currentTarget.blur(); }
 };
 
+// Footer action that clears the value, set apart from the option list.
+export function ClearOption({ onClick }) {
+  return (
+    <div className="pop-footer">
+      <button type="button" className="pop-clear" onClick={onClick}>
+        <span aria-hidden="true">✕</span> Clear selection
+      </button>
+    </div>
+  );
+}
+
+// Dropdown list with a filter box; `onAdd` (when given) offers to add a missing entry.
+function SearchableOptions({ options, value, onPick, onAdd, placeholder }) {
+  const [query, setQuery] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [error, setError] = useState(null);
+  const q = query.trim();
+  const matches = q ? options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase())) : options;
+  const exact = options.find((o) => o.label.toLowerCase() === q.toLowerCase());
+  const canAdd = !!onAdd && !!q && !exact;
+
+  const add = async () => {
+    setAdding(true); setError(null);
+    try { await onAdd(q); onPick(q); }
+    catch (e) { setError(e.message || 'Could not add'); setAdding(false); }
+  };
+
+  return (
+    <>
+      <input
+        className="pop-search"
+        autoFocus
+        value={query}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        onChange={(e) => { setQuery(e.target.value); setError(null); }}
+        onKeyDown={(e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          if (exact) onPick(exact.label);
+          else if (matches.length === 1) onPick(matches[0].label);
+          else if (canAdd && !adding) add();
+        }}
+      />
+      <div className="pop-scroll">
+        {matches.map((o) => (
+          <div key={o.label} className="pop-opt" onClick={() => onPick(o.label)}>
+            {o.label}
+            {value === o.label && <span className="pop-check">✓</span>}
+          </div>
+        ))}
+        {!matches.length && !canAdd && <div className="pop-empty">No matches</div>}
+      </div>
+      {canAdd && (
+        <button type="button" className="pop-add" onClick={add} disabled={adding}>
+          {adding ? 'Adding…' : <>+ Add “{q}”</>}
+        </button>
+      )}
+      {error && <div className="pop-error">{error}</div>}
+    </>
+  );
+}
+
 // One grid cell. `col` is the column def, `onCommit(patch)` persists a change.
 export default function Cell({ col, item, options, onCommit, readOnly }) {
+  const addOption = useContext(AddOptionContext);
   const [anchor, setAnchor] = useState(null);
   const [editingNum, setEditingNum] = useState(false);
   const value = item[col.key];
@@ -108,10 +173,7 @@ export default function Cell({ col, item, options, onCommit, readOnly }) {
                 {value === o.label && <span className="pop-check">✓</span>}
               </div>
             ))}
-            <div className="pop-opt" onClick={() => pick({ [col.key]: null })} style={{ color: 'var(--tx2)' }}>
-              <span className="pop-swatch" style={{ background: 'var(--bd2)' }} />
-              Clear
-            </div>
+            <ClearOption onClick={() => pick({ [col.key]: null })} />
           </Popover>
         )}
       </>
@@ -127,14 +189,22 @@ export default function Cell({ col, item, options, onCommit, readOnly }) {
           {value || '–'}
         </div>
         {anchor && (
-          <Popover anchorRect={anchor} onClose={close} width={200}>
-            {optionList(options, col.field).map((o) => (
+          <Popover anchorRect={anchor} onClose={close} width={col.creatable ? 230 : 200}>
+            {col.creatable ? (
+              <SearchableOptions
+                options={optionList(options, col.field)}
+                value={value}
+                placeholder={`Search or add ${col.label.toLowerCase()}`}
+                onPick={(label) => pick({ [col.key]: label })}
+                onAdd={addOption ? (label) => addOption(col.field, label) : null}
+              />
+            ) : optionList(options, col.field).map((o) => (
               <div key={o.label} className="pop-opt" onClick={() => pick({ [col.key]: o.label })}>
                 {o.label}
                 {value === o.label && <span className="pop-check">✓</span>}
               </div>
             ))}
-            <div className="pop-opt" onClick={() => pick({ [col.key]: null })} style={{ color: 'var(--tx2)' }}>Clear</div>
+            <ClearOption onClick={() => pick({ [col.key]: null })} />
           </Popover>
         )}
       </>

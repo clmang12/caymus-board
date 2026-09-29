@@ -2,6 +2,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import Popover from './Popover';
 import SyncedInput from './SyncedInput';
+import { ClearOption } from './Cell';
 import { labelColor, optionList, EMPTY_COLOR } from './columns';
 
 const commitOnEnter = (e) => {
@@ -115,11 +116,7 @@ function SubRow({ sub, options, groupColor, onCommit, onDelete, onNotify, isSele
               {sub.cond === o.label && <span className="pop-check">✓</span>}
             </div>
           ))}
-          <div className="pop-opt" style={{ color: 'var(--tx2)' }}
-            onClick={() => { onCommit({ cond: null }); setAnchor(null); }}>
-            <span className="pop-swatch" style={{ background: 'var(--bd2)' }} />
-            Clear
-          </div>
+          <ClearOption onClick={() => { onCommit({ cond: null }); setAnchor(null); }} />
         </Popover>
       )}
       {detailsAnchor && (

@@ -13,7 +13,7 @@ export const COLUMNS = [
   { key: 'volume',     label: 'Volume',          type: 'currency', width: 120, align: 'right',  field: null },
   { key: 'status',     label: 'Status',          type: 'label',    width: 130, align: 'center', field: 'status' },
   { key: 'appraisal',  label: 'Appraisal',       type: 'label',    width: 132, align: 'center', field: 'appraisal' },
-  { key: 'appraiser',  label: 'Appraiser',       type: 'dropdown', width: 140, align: 'center', field: 'appraiser' },
+  { key: 'appraiser',  label: 'Appraiser',       type: 'dropdown', width: 140, align: 'center', field: 'appraiser', creatable: true },
   { key: 'instructed', label: 'Instructed',      type: 'label',    width: 110, align: 'center', field: 'instructed' },
   { key: 'broker',     label: 'Broker Complete', type: 'label',    width: 140, align: 'center', field: 'broker' },
   { key: 'compliance', label: 'Compliance',      type: 'label',    width: 120, align: 'center', field: 'compliance' },

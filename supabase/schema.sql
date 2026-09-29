@@ -274,7 +274,7 @@ create policy attachments_team on storage.objects
 do $$
 declare t text;
 begin
-  foreach t in array array['items','subitems','groups','updates'] loop
+  foreach t in array array['items','subitems','groups','updates','field_options'] loop
     begin
       execute format('alter publication supabase_realtime add table %I', t);
     exception when duplicate_object then null;

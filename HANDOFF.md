@@ -90,6 +90,16 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   it collapsed. Both UI tests need the dev server on :3000. Fixed two React
   warnings in `SubitemPanel.jsx` (unkeyed cells, read-only row checkbox).
 
+- **Appraiser dropdown: search + add.** Columns flagged `creatable: true`
+  (only `appraiser`) get a filter box (`SearchableOptions` in `Cell.jsx`;
+  Enter picks an exact or single match) and a "+ Add “…”" button when nothing
+  matches exactly. It inserts into `field_options` via `addFieldOption`;
+  `BoardGrid` now keeps `options` in state and provides `addOption` through
+  `AddOptionContext`. `field_options` INSERTs are in the realtime publication
+  and merged live. **Clear** is now a separate footer button (`ClearOption`)
+  in all label/dropdown popovers and the condition status popover. Test:
+  `scripts/_ui-test-appraiser.mjs`.
+
 ### Session 4 (2026-09-11 → 09-23) — post-PORTING features
 All user-requested, all deployed, each with a headless test (gitignored):
 

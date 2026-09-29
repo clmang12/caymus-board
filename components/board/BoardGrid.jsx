@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { subscribeToBoard } from '@/lib/data/realtime';
-import { getBoardTree, updateItem, createItem, duplicateItem, deleteItem, setItemPositions } from '@/lib/data/boards';
+import { getBoardTree, updateItem, createItem, duplicateItem, deleteItem, setItemPositions, addFieldOption } from '@/lib/data/boards';
 import { findItemTrashId, restoreFromTrash } from '@/lib/data/trash';
 import { addSubitem, insertSubitems, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
 import { listAttachments, uploadAttachment, deleteAttachment, getDownloadUrl } from '@/lib/data/attachments';
@@ -10,6 +10,7 @@ import { listUpdates, postUpdate, deleteUpdate } from '@/lib/data/updates';
 import { listAutomations, setAutomation } from '@/lib/data/automations';
 import { listNotifications, dismissNotification, dismissAll } from '@/lib/data/notifications';
 import { savePrefs } from '@/lib/data/prefs';
+import { AddOptionContext } from './OptionsContext';
 import GroupSection from './GroupSection';
 import AutomationsPanel from './AutomationsPanel';
 import NotificationsBell from './NotificationsBell';
@@ -54,9 +55,10 @@ function sortItems(items, sort) {
   });
 }
 
-export default function BoardGrid({ user, board, options, prefs }) {
+export default function BoardGrid({ user, board, options: initialOptions, prefs }) {
   const sb = useMemo(() => createClient(), []);
   const [tree, setTree] = useState(board);
+  const [options, setOptions] = useState(initialOptions);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState({ agent: null, lender: null });
   const [trashOpen, setTrashOpen] = useState(false);
@@ -70,6 +72,21 @@ export default function BoardGrid({ user, board, options, prefs }) {
   }));
 
   useEffect(() => { setTree(board); }, [board]);
+  useEffect(() => { setOptions(initialOptions); }, [initialOptions]);
+
+  // Append one option locally (from our insert or a teammate's, via realtime).
+  const mergeOption = useCallback((field, label, color) => {
+    setOptions((o) => ((o[field] || []).some(([l]) => l === label)
+      ? o
+      : { ...o, [field]: [...(o[field] || []), [label, color ?? null]] }));
+  }, []);
+
+  const addOption = useCallback(async (field, label) => {
+    const position = (options[field] || []).length;
+    const row = await addFieldOption(sb, board.id, field, label, position);
+    mergeOption(row.field, row.label, row.color);
+    return row;
+  }, [sb, board.id, options, mergeOption]);
 
   // ---- dark/light theme ----
   useEffect(() => {
@@ -110,6 +127,7 @@ export default function BoardGrid({ user, board, options, prefs }) {
   useEffect(() => {
     return subscribeToBoard(sb, board.id, ({ table, event, row }) => {
       if (!row) return;
+      if (table === 'field_options') { mergeOption(row.field, row.label, row.color); return; }
       setTree((t) => {
         if (table === 'items') {
           if (event === 'DELETE') {
@@ -158,7 +176,7 @@ export default function BoardGrid({ user, board, options, prefs }) {
         return t;
       });
     });
-  }, [sb, board.id]);
+  }, [sb, board.id, mergeOption]);
 
   // ---- undo: this user's own recent changes, newest first. Entries are
   // skipped (not forced) if the thing was changed again since, so undo never
@@ -665,6 +683,7 @@ export default function BoardGrid({ user, board, options, prefs }) {
   }
 
   return (
+    <AddOptionContext.Provider value={addOption}>
     <main className="board-main">
       <div style={{ padding: '16px 24px 0' }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>{tree.name}</h1>
@@ -795,5 +814,6 @@ export default function BoardGrid({ user, board, options, prefs }) {
       )}
 
     </main>
+    </AddOptionContext.Provider>
   );
 }
