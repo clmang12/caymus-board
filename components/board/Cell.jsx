@@ -24,7 +24,9 @@ export function ClearOption({ onClick }) {
 }
 
 // Dropdown list with a filter box; `onAdd` (when given) offers to add a missing entry.
-function SearchableOptions({ options, value, onPick, onAdd, placeholder }) {
+// `renderOption(o)` draws a row (defaults to label + check). In `multi` mode picking
+// toggles and the popover stays open, so the query resets after each pick.
+function SearchableOptions({ options, value, onPick, onAdd, placeholder, renderOption, multi }) {
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
@@ -33,10 +35,12 @@ function SearchableOptions({ options, value, onPick, onAdd, placeholder }) {
   const exact = options.find((o) => o.label.toLowerCase() === q.toLowerCase());
   const canAdd = !!onAdd && !!q && !exact;
 
+  const choose = (label) => { onPick(label); if (multi) setQuery(''); };
   const add = async () => {
     setAdding(true); setError(null);
-    try { await onAdd(q); onPick(q); }
-    catch (e) { setError(e.message || 'Could not add'); setAdding(false); }
+    try { await onAdd(q); choose(q); }
+    catch (e) { setError(e.message || 'Could not add'); }
+    setAdding(false);
   };
 
   return (
@@ -51,16 +55,20 @@ function SearchableOptions({ options, value, onPick, onAdd, placeholder }) {
         onKeyDown={(e) => {
           if (e.key !== 'Enter') return;
           e.preventDefault();
-          if (exact) onPick(exact.label);
-          else if (matches.length === 1) onPick(matches[0].label);
+          if (exact) choose(exact.label);
+          else if (matches.length === 1) choose(matches[0].label);
           else if (canAdd && !adding) add();
         }}
       />
       <div className="pop-scroll">
         {matches.map((o) => (
-          <div key={o.label} className="pop-opt" onClick={() => onPick(o.label)}>
-            {o.label}
-            {value === o.label && <span className="pop-check">✓</span>}
+          <div key={o.label} className="pop-opt" onClick={() => choose(o.label)}>
+            {renderOption ? renderOption(o) : (
+              <>
+                {o.label}
+                {value === o.label && <span className="pop-check">✓</span>}
+              </>
+            )}
           </div>
         ))}
         {!matches.length && !canAdd && <div className="pop-empty">No matches</div>}
@@ -227,18 +235,24 @@ export default function Cell({ col, item, options, onCommit, readOnly }) {
             : <span style={{ color: 'var(--tx3)' }}>–</span>}
         </div>
         {anchor && (
-          <Popover anchorRect={anchor} onClose={close} width={220}>
-            <div style={{ maxHeight: 280, overflow: 'auto' }}>
-              {optionList(options, col.field).map((o) => (
-                <div key={o.label} className="pop-opt" onClick={() => toggle(o.label)}>
+          <Popover anchorRect={anchor} onClose={close} width={230}>
+            <SearchableOptions
+              multi
+              options={optionList(options, col.field)}
+              placeholder={`Search or add ${col.label.toLowerCase()}`}
+              onPick={toggle}
+              onAdd={col.creatable && addOption ? (label) => addOption(col.field, label) : null}
+              renderOption={(o) => (
+                <>
                   <span className="pop-swatch" style={{
                     background: arr.includes(o.label) ? 'var(--blue)' : 'transparent',
                     border: '1.5px solid ' + (arr.includes(o.label) ? 'var(--blue)' : 'var(--bd3)'),
                   }} />
                   {o.label}
-                </div>
-              ))}
-            </div>
+                </>
+              )}
+            />
+            <ClearOption onClick={() => pick({ [col.key]: [] })} />
           </Popover>
         )}
       </>

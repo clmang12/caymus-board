@@ -91,14 +91,16 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   warnings in `SubitemPanel.jsx` (unkeyed cells, read-only row checkbox).
 
 - **Appraiser dropdown: search + add.** Columns flagged `creatable: true`
-  (only `appraiser`) get a filter box (`SearchableOptions` in `Cell.jsx`;
+  (`appraiser`, and multi-select `lender`, where picks toggle and the
+  popover stays open) get a filter box (`SearchableOptions` in `Cell.jsx`;
   Enter picks an exact or single match) and a "+ Add “…”" button when nothing
   matches exactly. It inserts into `field_options` via `addFieldOption`;
   `BoardGrid` now keeps `options` in state and provides `addOption` through
   `AddOptionContext`. `field_options` INSERTs are in the realtime publication
   and merged live. **Clear** is now a separate footer button (`ClearOption`)
-  in all label/dropdown popovers and the condition status popover. Test:
-  `scripts/_ui-test-appraiser.mjs`.
+  in all label/dropdown/lender popovers and the condition status popover
+  (lender Clear empties the array). Tests: `scripts/_ui-test-appraiser.mjs`,
+  `scripts/_ui-test-lender.mjs`.
 
 ### Session 4 (2026-09-11 → 09-23) — post-PORTING features
 All user-requested, all deployed, each with a headless test (gitignored):
