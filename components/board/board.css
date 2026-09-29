@@ -403,6 +403,17 @@
 .updates-drawer {
   width: 420px; max-width: 92vw; height: 100%; background: var(--s1);
   box-shadow: -8px 0 28px rgba(30, 40, 80, .16); display: flex; flex-direction: column;
+  animation: drawer-slide-in .26s cubic-bezier(.2, .8, .2, 1);
+}
+.updates-drawer-overlay { animation: drawer-fade-in .26s ease-out; }
+.updates-drawer.closing { animation: drawer-slide-out .2s cubic-bezier(.4, 0, 1, 1) forwards; }
+.updates-drawer-overlay.closing { animation: drawer-fade-out .2s ease-in forwards; }
+@keyframes drawer-slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes drawer-slide-out { from { transform: translateX(0); } to { transform: translateX(100%); } }
+@keyframes drawer-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes drawer-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .updates-drawer, .updates-drawer-overlay { animation: none; }
 }
 .updates-drawer-head {
   display: flex; align-items: center; gap: 12px; padding: 16px 20px;

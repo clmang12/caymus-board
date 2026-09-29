@@ -44,8 +44,7 @@ const Chevron = ({ open }) => (
 
 const ChatIcon = () => (
   <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-    <path d="M3 3.25h10c.69 0 1.25.56 1.25 1.25v5.25c0 .69-.56 1.25-1.25 1.25H8l-3.25 2v-2H3c-.69 0-1.25-.56-1.25-1.25V4.5C1.75 3.81 2.31 3.25 3 3.25Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-    <path d="M5 6.5h6M5 8.75h3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    <path d="M2 3.5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H6l-3 2.5V10.5H3a1 1 0 0 1-1-1z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
   </svg>
 );
 
@@ -64,14 +63,23 @@ export default function ItemRow({
   const menuBtnRef = useRef(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [updatesOpen, setUpdatesOpen] = useState(false);
+  const [updatesClosing, setUpdatesClosing] = useState(false);
   const [drawerTab, setDrawerTab] = useState('updates');
 
   const openUpdates = () => {
+    setUpdatesClosing(false);
     setUpdatesOpen(true);
     onOpenUpdates(item.id);
   };
 
-  const closeUpdates = () => setUpdatesOpen(false);
+  // Play the slide-out, then unmount (see .updates-drawer.closing in board.css).
+  const closeUpdates = () => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) setUpdatesOpen(false);
+    else setUpdatesClosing(true);
+  };
+  const onDrawerAnimationEnd = (e) => {
+    if (updatesClosing && e.target === e.currentTarget) { setUpdatesOpen(false); setUpdatesClosing(false); }
+  };
 
   const onDelete = () => {
     if (confirm(`Delete "${item.name}"? It moves to trash and can be restored.`)) {
@@ -189,11 +197,12 @@ export default function ItemRow({
       )}
 
       {updatesOpen && (
-        <div className="updates-drawer-overlay" onClick={closeUpdates} role="presentation">
+        <div className={'updates-drawer-overlay' + (updatesClosing ? ' closing' : '')} onClick={closeUpdates} role="presentation">
           <aside
-            className="updates-drawer"
+            className={'updates-drawer' + (updatesClosing ? ' closing' : '')}
             aria-label={`Chat and update history for ${item.name}`}
             onClick={(e) => e.stopPropagation()}
+            onAnimationEnd={onDrawerAnimationEnd}
           >
             <div className="updates-drawer-head">
               <button className="updates-drawer-close" title="Close chat" aria-label="Close chat" onClick={closeUpdates}>×</button>
