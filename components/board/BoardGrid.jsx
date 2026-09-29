@@ -82,11 +82,10 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
   }, []);
 
   const addOption = useCallback(async (field, label) => {
-    const position = (options[field] || []).length;
-    const row = await addFieldOption(sb, board.id, field, label, position);
+    const row = await addFieldOption(sb, board.id, field, label);
     mergeOption(row.field, row.label, row.color);
     return row;
-  }, [sb, board.id, options, mergeOption]);
+  }, [sb, board.id, mergeOption]);
 
   const dropOption = useCallback((field, label) => {
     setOptions((o) => ({ ...o, [field]: (o[field] || []).filter(([l]) => l !== label) }));
