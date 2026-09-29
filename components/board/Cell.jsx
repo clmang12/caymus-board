@@ -94,6 +94,31 @@ export default function Cell({ col, item, options, onCommit, readOnly }) {
   const close = () => setAnchor(null);
   const pick = (patch) => { onCommit(patch); close(); };
 
+  // Removes the choice from the board's list only; deals that use it keep it.
+  const removeChoice = async (label) => {
+    const noun = col.label.toLowerCase();
+    const inUse = optionsApi.countUses?.(col.key, label) ?? 0;
+    const msg = `Delete "${label}" from the ${noun} list?`
+      + (inUse ? `\n\n${inUse} deal${inUse === 1 ? '' : 's'} still use${inUse === 1 ? 's' : ''} it and will keep it.` : '');
+    if (!confirm(msg)) return;
+    try {
+      await optionsApi.removeOption(col.field, label);
+      optionsApi.notify(`Deleted ${noun} "${label}"`);
+    } catch (e) {
+      optionsApi.notify(`Couldn't delete "${label}": ${e.message}`);
+    }
+  };
+  const canDelete = col.deletable && optionsApi?.removeOption;
+  const deleteButton = (label) => canDelete && (
+    <button
+      type="button"
+      className="pop-opt-del"
+      title={`Delete "${label}" from the list`}
+      aria-label={`Delete ${label} from the ${col.label.toLowerCase()} list`}
+      onClick={(e) => { e.stopPropagation(); removeChoice(label); }}
+    >✕</button>
+  );
+
   // --- text (name, notes, email) ---
   if (col.type === 'text') {
     return (
@@ -206,6 +231,13 @@ export default function Cell({ col, item, options, onCommit, readOnly }) {
                 placeholder={`Search or add ${col.label.toLowerCase()}`}
                 onPick={(label) => pick({ [col.key]: label })}
                 onAdd={addOption ? (label) => addOption(col.field, label) : null}
+                renderOption={(o) => (
+                  <>
+                    <span className="pop-opt-label">{o.label}</span>
+                    {value === o.label && <span className="pop-check">✓</span>}
+                    {deleteButton(o.label)}
+                  </>
+                )}
               />
             ) : optionList(options, col.field).map((o) => (
               <div key={o.label} className="pop-opt" onClick={() => pick({ [col.key]: o.label })}>
@@ -227,21 +259,6 @@ export default function Cell({ col, item, options, onCommit, readOnly }) {
       const next = arr.includes(label) ? arr.filter((x) => x !== label) : [...arr, label];
       onCommit({ [col.key]: next });
     };
-    // Removes the choice from the board's list only; deals that use it keep it.
-    const removeChoice = async (label) => {
-      const noun = col.label.toLowerCase();
-      const inUse = optionsApi.countUses?.(col.key, label) ?? 0;
-      const msg = `Delete "${label}" from the ${noun} list?`
-        + (inUse ? `\n\n${inUse} deal${inUse === 1 ? '' : 's'} still list${inUse === 1 ? 's' : ''} it and will keep it.` : '');
-      if (!confirm(msg)) return;
-      try {
-        await optionsApi.removeOption(col.field, label);
-        optionsApi.notify(`Deleted ${noun} "${label}"`);
-      } catch (e) {
-        optionsApi.notify(`Couldn't delete "${label}": ${e.message}`);
-      }
-    };
-    const canDelete = col.deletable && optionsApi?.removeOption;
     return (
       <>
         <div className={'label-fill' + (readOnly ? '' : ' clickable')}
@@ -265,15 +282,7 @@ export default function Cell({ col, item, options, onCommit, readOnly }) {
                     border: '1.5px solid ' + (arr.includes(o.label) ? 'var(--blue)' : 'var(--bd3)'),
                   }} />
                   <span className="pop-opt-label">{o.label}</span>
-                  {canDelete && (
-                    <button
-                      type="button"
-                      className="pop-opt-del"
-                      title={`Delete "${o.label}" from the list`}
-                      aria-label={`Delete ${o.label} from the ${col.label.toLowerCase()} list`}
-                      onClick={(e) => { e.stopPropagation(); removeChoice(o.label); }}
-                    >✕</button>
-                  )}
+                  {deleteButton(o.label)}
                 </>
               )}
             />
