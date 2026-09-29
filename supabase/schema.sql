@@ -28,6 +28,34 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
 
+-- Invite-only: a new auth user is refused unless their email is listed here.
+-- Enforced in the database so the public anon key can't be used to sign up
+-- directly. Invite with `npm run invite -- someone@example.com`. No RLS
+-- policies: only the service role and the definer function below can read it.
+create table if not exists allowed_emails (
+  email    text primary key check (email = lower(email)),
+  added_at timestamptz not null default now()
+);
+alter table allowed_emails enable row level security;
+-- Everyone who already has an account stays allowed.
+insert into allowed_emails (email)
+  select lower(email) from auth.users where email is not null
+  on conflict do nothing;
+
+create or replace function enforce_invite_only() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from allowed_emails where email = lower(new.email)) then
+    raise exception 'invite_only: % has not been invited', new.email;
+  end if;
+  return new;
+end; $$;
+
+drop trigger if exists enforce_invite_only_trg on auth.users;
+create trigger enforce_invite_only_trg
+  before insert on auth.users
+  for each row execute function enforce_invite_only();
+
 -- ------------------------------------------------------------------ boards
 create table if not exists boards (
   id          uuid primary key default gen_random_uuid(),

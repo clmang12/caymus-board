@@ -16,7 +16,8 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
 - Repo: https://github.com/clmang12/caymus-board (private). Branch `main`.
   `git log --oneline -5` for the real HEAD. Tree should be clean.
 - **Localhost has no login page** while `DEV_AUTO_LOGIN=1` is in
-  `.env.local` — see "Signing in". Production always requires login.
+  `.env.local` — see "Signing in". Production always requires login
+  (email + password, invite-only sign-up).
 - **All 9 PORTING.md items are DONE and deployed**: board grid, inline
   editing, subitem CRUD, sidebar board CRUD + row drag, notifications,
   AI assistant drawer, file attachments, mobile card view, automations.
@@ -271,10 +272,32 @@ received (presence only) — use it to debug Vercel config.
 
 ---
 
-## Signing in (during evaluation)
+## Signing in
 
-Email delivery is not set up, so the normal "enter email → click link" flow
-can't send. Two ways in:
+**Password sign-in (session 5).** `/login` takes email + password
+(`signInWithPassword`), with "Email me a sign-in link instead" as a fallback.
+Accounts start without a password: sign in once by link, then use **Set
+password** in the sidebar footer (`components/Sidebar.jsx`, calls
+`auth.updateUser`, min 8 chars). Sessions persist, so login is rare.
+
+**Invite-only sign-up (session 5).** `enforce_invite_only` (a `before insert`
+trigger on `auth.users`, in `schema.sql`) refuses any new account whose email
+isn't in `allowed_emails`. It's enforced in the database, so the public anon
+key can't bypass it. Invite: `npm run invite -- name@example.com` (add
+`--remove` to revoke future sign-up; it doesn't delete an existing account).
+Then they use "Email me a sign-in link". Seeded with every existing account
+(only `clmang@gmail.com` at the time). The login page shows "This email hasn't
+been invited" for the trigger's generic "Database error saving/creating new
+user".
+
+**Dev helpers never touch passwords.** `app/api/dev-login` and
+`scripts/_mint-session.mjs` verify an admin-generated magic-link token
+(`generateLink` + `verifyOtp`; no email sent). They used to reset the user's
+password on every call, which would have wiped the real one: local and prod
+share one Supabase project.
+
+Email delivery is not set up, so the "email me a link" flow is limited to
+Supabase's built-in sender (a few per hour). Other ways in:
 
 **1. Out-of-band magic link.** Generate one with the service-role key, follow the
 Supabase verify redirect manually, and hand the token hash straight to

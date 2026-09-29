@@ -18,16 +18,14 @@ export async function GET(request) {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+  // One-time magic-link token, verified server-side: no email is sent and the
+  // user's real password (shared with production) is left alone.
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
-  const pass = 'devpass-' + Math.random().toString(36).slice(2) + 'A1!';
-
-  const { data: list } = await admin.auth.admin.listUsers({ perPage: 200 });
-  const found = list.users.find((u) => u.email === DEV_EMAIL);
-  if (!found) return new NextResponse('dev user not found', { status: 500 });
-  await admin.auth.admin.updateUserById(found.id, { password: pass });
+  const { data: link, error: linkErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email: DEV_EMAIL });
+  if (linkErr) return new NextResponse(linkErr.message, { status: 500 });
 
   const anon = createClient(url, anonKey, { auth: { persistSession: false } });
-  const { data: si, error } = await anon.auth.signInWithPassword({ email: DEV_EMAIL, password: pass });
+  const { data: si, error } = await anon.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: 'magiclink' });
   if (error) return new NextResponse(error.message, { status: 500 });
 
   const store = cookies();

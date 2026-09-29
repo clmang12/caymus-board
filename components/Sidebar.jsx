@@ -16,6 +16,8 @@ export default function Sidebar({ boards: initial, activeId, user }) {
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [pwAnchor, setPwAnchor] = useState(null);
+  const [pwMsg, setPwMsg] = useState(null); // { ok, text }
 
   useEffect(() => { setBoards(initial); }, [initial]);
 
@@ -28,6 +30,18 @@ export default function Sidebar({ boards: initial, activeId, user }) {
       try { sessionStorage.removeItem('caymus:renameBoard'); } catch {}
     }
   }, [initial]);
+
+  async function setPassword(e) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const pw = form.elements.pw.value;
+    if (pw.length < 8) return setPwMsg({ ok: false, text: 'Use at least 8 characters.' });
+    if (pw !== form.elements.confirm.value) return setPwMsg({ ok: false, text: "Passwords don't match." });
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) return setPwMsg({ ok: false, text: error.message });
+    setPwMsg({ ok: true, text: 'Password saved. Use it with your email on the sign-in page.' });
+    form.reset();
+  }
 
   async function signOut() {
     await sb.auth.signOut();
@@ -138,8 +152,21 @@ export default function Sidebar({ boards: initial, activeId, user }) {
 
       <div className="sb-foot">
         <div className="sb-email" title={user.email}>{user.email}</div>
+        <button className="sb-signout" onClick={(e) => { setPwMsg(null); setPwAnchor(e.currentTarget.getBoundingClientRect()); }}>Set password</button>
         <button className="sb-signout" onClick={signOut}>Sign out</button>
       </div>
+
+      {pwAnchor && (
+        <Popover anchorRect={pwAnchor} onClose={() => setPwAnchor(null)} width={240}>
+          <form className="sb-pw-form" onSubmit={setPassword}>
+            <input type="email" name="username" autoComplete="username" value={user.email} readOnly hidden />
+            <input name="pw" type="password" autoComplete="new-password" placeholder="New password" aria-label="New password" required autoFocus />
+            <input name="confirm" type="password" autoComplete="new-password" placeholder="Confirm password" aria-label="Confirm password" required />
+            <button type="submit">Save password</button>
+            {pwMsg && <p className={pwMsg.ok ? 'ok' : 'err'}>{pwMsg.text}</p>}
+          </form>
+        </Popover>
+      )}
 
       {menu && (
         <Popover anchorRect={menu.rect} onClose={() => setMenu(null)} width={170}>
