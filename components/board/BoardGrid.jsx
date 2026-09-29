@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { subscribeToBoard } from '@/lib/data/realtime';
-import { getBoardTree, updateItem, createItem, duplicateItem, deleteItem, setItemPositions, addFieldOption } from '@/lib/data/boards';
+import { getBoardTree, updateItem, createItem, duplicateItem, deleteItem, setItemPositions, addFieldOption, deleteFieldOption, getFieldOptions } from '@/lib/data/boards';
 import { findItemTrashId, restoreFromTrash } from '@/lib/data/trash';
 import { addSubitem, insertSubitems, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
 import { listAttachments, uploadAttachment, deleteAttachment, getDownloadUrl } from '@/lib/data/attachments';
@@ -10,7 +10,7 @@ import { listUpdates, postUpdate, deleteUpdate } from '@/lib/data/updates';
 import { listAutomations, setAutomation } from '@/lib/data/automations';
 import { listNotifications, dismissNotification, dismissAll } from '@/lib/data/notifications';
 import { savePrefs } from '@/lib/data/prefs';
-import { AddOptionContext } from './OptionsContext';
+import { OptionsContext } from './OptionsContext';
 import GroupSection from './GroupSection';
 import AutomationsPanel from './AutomationsPanel';
 import NotificationsBell from './NotificationsBell';
@@ -88,6 +88,15 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
     return row;
   }, [sb, board.id, options, mergeOption]);
 
+  const dropOption = useCallback((field, label) => {
+    setOptions((o) => ({ ...o, [field]: (o[field] || []).filter(([l]) => l !== label) }));
+  }, []);
+
+  const removeOption = useCallback(async (field, label) => {
+    await deleteFieldOption(sb, board.id, field, label);
+    dropOption(field, label);
+  }, [sb, board.id, dropOption]);
+
   // ---- dark/light theme ----
   useEffect(() => {
     document.documentElement.classList.toggle('dark', prefsState.theme === 'dark');
@@ -127,7 +136,11 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
   useEffect(() => {
     return subscribeToBoard(sb, board.id, ({ table, event, row }) => {
       if (!row) return;
-      if (table === 'field_options') { mergeOption(row.field, row.label, row.color); return; }
+      if (table === 'field_options') {
+        if (event === 'DELETE') getFieldOptions(sb, board.id).then(setOptions).catch((e) => console.error('getFieldOptions failed', e));
+        else mergeOption(row.field, row.label, row.color);
+        return;
+      }
       setTree((t) => {
         if (table === 'items') {
           if (event === 'DELETE') {
@@ -448,6 +461,11 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
   }, []);
   const undoBusy = useRef(false);
 
+  // How many deals on this board use `label` in column `key` (array or single value).
+  const countUses = useCallback((key, label) => treeRef.current.groups.reduce((n, g) => n + g.items
+    .filter((it) => (Array.isArray(it[key]) ? it[key].includes(label) : it[key] === label)).length, 0), []);
+  const optionsApi = useMemo(() => ({ addOption, removeOption, countUses, notify: note }), [addOption, removeOption, countUses, note]);
+
   const undo = useCallback(async () => {
     if (undoBusy.current) return;
     const e = undoStack.current.pop();
@@ -683,7 +701,7 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
   }
 
   return (
-    <AddOptionContext.Provider value={addOption}>
+    <OptionsContext.Provider value={optionsApi}>
     <main className="board-main">
       <div style={{ padding: '16px 24px 0' }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>{tree.name}</h1>
@@ -814,6 +832,6 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
       )}
 
     </main>
-    </AddOptionContext.Provider>
+    </OptionsContext.Provider>
   );
 }

@@ -9,7 +9,7 @@ export const COLUMNS = [
   { key: 'agent',      label: 'Agent',           type: 'label',    width: 110, align: 'center', field: 'agent', pill: true },
   { key: 'deal',       label: 'Deal',            type: 'dropdown', width: 110, align: 'center', field: 'deal' },
   { key: 'close_date', label: 'Closing Date',    type: 'date',     width: 132, align: 'center', field: null },
-  { key: 'lender',     label: 'Lender',          type: 'multi',    width: 150, align: 'center', field: 'lender', creatable: true },
+  { key: 'lender',     label: 'Lender',          type: 'multi',    width: 150, align: 'center', field: 'lender', creatable: true, deletable: true },
   { key: 'volume',     label: 'Volume',          type: 'currency', width: 120, align: 'right',  field: null },
   { key: 'status',     label: 'Status',          type: 'label',    width: 130, align: 'center', field: 'status' },
   { key: 'appraisal',  label: 'Appraisal',       type: 'label',    width: 132, align: 'center', field: 'appraisal' },

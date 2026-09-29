@@ -99,7 +99,12 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   `AddOptionContext`. `field_options` INSERTs are in the realtime publication
   and merged live. **Clear** is now a separate footer button (`ClearOption`)
   in all label/dropdown/lender popovers and the condition status popover
-  (lender Clear empties the array). Tests: `scripts/_ui-test-appraiser.mjs`,
+  (lender Clear empties the array). Columns flagged `deletable` (only
+  `lender`) show a hover ✕ per option: confirm (says how many deals use it;
+  they keep it) → `deleteFieldOption` → toast. `OptionsContext` now provides
+  `{ addOption, removeOption, countUses, notify }`. Realtime DELETEs on an RLS
+  table carry only the id, so a field_options DELETE makes the board refetch
+  its options. Tests (also `_ui-test-lender-delete.mjs`): `scripts/_ui-test-appraiser.mjs`,
   `scripts/_ui-test-lender.mjs`.
 
 ### Session 4 (2026-09-11 → 09-23) — post-PORTING features
