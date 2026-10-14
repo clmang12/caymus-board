@@ -270,6 +270,38 @@ create policy attachments_team on storage.objects
   for all to authenticated
   using (bucket_id = 'attachments') with check (bucket_id = 'attachments');
 
+-- ------------------------------------------- OAuth (AI assistant) limits
+-- Access tokens that Supabase's OAuth 2.1 server issues to AI assistants
+-- carry a client_id claim. These RESTRICTIVE policies narrow such a token to
+-- the MCP tools' scope (lib/mcp/tools.js) even if it's used against the REST
+-- API directly: read anything; insert/update deals and conditions; post
+-- updates. No deletes, no other writes, no file storage.
+create or replace function is_oauth_client() returns boolean
+language sql stable as $$ select coalesce(auth.jwt() ->> 'client_id', '') <> '' $$;
+
+do $$
+declare t text; op text;
+begin
+  foreach t in array array['boards','groups','field_options','items','subitems',
+                           'subitem_templates','updates','attachments','automations',
+                           'trash','profiles','notifications','user_prefs'] loop
+    foreach op in array array['insert','update','delete'] loop
+      execute format('drop policy if exists oauth_%s on %I', op, t);
+      continue when (t in ('items','subitems') and op <> 'delete') or (t = 'updates' and op = 'insert');
+      if op = 'insert' then
+        execute format('create policy oauth_insert on %I as restrictive for insert to authenticated with check (not is_oauth_client())', t);
+      else
+        execute format('create policy oauth_%s on %I as restrictive for %s to authenticated using (not is_oauth_client())', op, t, op);
+      end if;
+    end loop;
+  end loop;
+end $$;
+
+drop policy if exists oauth_no_files on storage.objects;
+create policy oauth_no_files on storage.objects as restrictive
+  for all to authenticated
+  using (not public.is_oauth_client()) with check (not public.is_oauth_client());
+
 -- ---------------------------------------------------------------- realtime
 do $$
 declare t text;

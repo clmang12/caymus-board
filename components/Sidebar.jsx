@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Popover from './board/Popover';
+import AiConnections from './AiConnections';
 import {
   createBoard, renameBoard, duplicateBoard, deleteBoard, reorderBoards,
 } from '@/lib/data/boards';
@@ -18,6 +19,7 @@ export default function Sidebar({ boards: initial, activeId, user }) {
   const [busy, setBusy] = useState(false);
   const [pwAnchor, setPwAnchor] = useState(null);
   const [pwMsg, setPwMsg] = useState(null); // { ok, text }
+  const [aiAnchor, setAiAnchor] = useState(null);
 
   useEffect(() => { setBoards(initial); }, [initial]);
 
@@ -153,8 +155,15 @@ export default function Sidebar({ boards: initial, activeId, user }) {
       <div className="sb-foot">
         <div className="sb-email" title={user.email}>{user.email}</div>
         <button className="sb-signout" onClick={(e) => { setPwMsg(null); setPwAnchor(e.currentTarget.getBoundingClientRect()); }}>Set password</button>
+        <button className="sb-signout" onClick={(e) => setAiAnchor(e.currentTarget.getBoundingClientRect())}>AI assistants</button>
         <button className="sb-signout" onClick={signOut}>Sign out</button>
       </div>
+
+      {aiAnchor && (
+        <Popover anchorRect={aiAnchor} onClose={() => setAiAnchor(null)} width={300}>
+          <AiConnections sb={sb} />
+        </Popover>
+      )}
 
       {pwAnchor && (
         <Popover anchorRect={pwAnchor} onClose={() => setPwAnchor(null)} width={240}>

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { safeNext } from '@/lib/auth/safeNext';
 
 // Handles both auth flows Supabase can send here:
 //  - PKCE / server flow:   ?code=...           (normal magic-link login)
@@ -11,7 +12,7 @@ export default function AuthCallback() {
   useEffect(() => {
     const sb = createClient();
     const url = new URL(window.location.href);
-    const next = url.searchParams.get('next') || '/';
+    const next = safeNext(url.searchParams.get('next'));
     const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
     const code = url.searchParams.get('code');
 

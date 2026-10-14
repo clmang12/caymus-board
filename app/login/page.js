@@ -1,6 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { safeNext } from '@/lib/auth/safeNext';
+
+// Where to go after signing in, e.g. back to an OAuth consent screen.
+function nextPath() {
+  return safeNext(new URLSearchParams(window.location.search).get('next'));
+}
 
 const inputStyle = {
   padding: '10px 12px', fontSize: 14, fontFamily: 'inherit',
@@ -34,7 +40,7 @@ export default function Login() {
       return;
     }
     // Full navigation so middleware sees the new session cookies.
-    window.location.assign('/');
+    window.location.assign(nextPath());
   }
 
   async function sendLink() {
@@ -45,6 +51,7 @@ export default function Login() {
       options: {
         emailRedirectTo:
           (process.env.NEXT_PUBLIC_SITE_URL || window.location.origin) + '/auth/callback'
+          + (nextPath() === '/' ? '' : '?next=' + encodeURIComponent(nextPath()))
       }
     });
     if (error) {

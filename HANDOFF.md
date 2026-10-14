@@ -1,6 +1,6 @@
 # HANDOFF — CAYMUS Board
 
-Session state as of 2026-09-28 (session 5). Read this first when
+Session state as of 2026-10-14 (session 6). Read this first when
 resuming in a new Claude Code / Claude for VS Code window. Companion docs:
 `README.md` (overview), `PORTING.md` (all 9 items — now done, see below),
 `DEPLOY.md` (Vercel), `SMTP-SETUP.md` (email), `design-reference/README.md`
@@ -35,6 +35,43 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
   in the Vercel dashboard (no Vercel access from here), then redeploy.
 - Every prototype feature is now ported, including undo (per-user; see
   Session 4). Remaining items need the user: API key, SMTP.
+
+### Session 6 (2026-10-14) — MCP server for outside AI assistants
+Team members can add the board to Claude.ai / ChatGPT (or any MCP client)
+as a custom connector at `https://caymus-board.vercel.app/api/mcp`.
+**Inert until the OAuth server is switched on in Supabase** (see below).
+- **Why not Supabase's own MCP server:** it's a developer tool (account
+  token, raw SQL on every table, no per-user identity). Ours runs as the
+  signed-in user through `lib/data`, so RLS, automations and authorship apply.
+- **Auth = Supabase Auth's OAuth 2.1 server.** The assistant discovers it via
+  `app/.well-known/oauth-protected-resource/[[...path]]` (RFC 9728) and
+  registers itself dynamically; the user signs in and approves on
+  `app/oauth/consent/page.js`. `app/.well-known/oauth-authorization-server`
+  relays Supabase's metadata for older clients. Tokens are verified in
+  `lib/mcp/auth.js` (`getClaims`, ES256 JWKS, issuer check).
+- **Tools** (`lib/mcp/tools.js`, endpoint `app/api/mcp/route.js`, via
+  `mcp-handler` 2 + `@modelcontextprotocol/server` 2 + `zod` 4):
+  list_boards, get_board, search_deals, get_deal, update_deal, move_deal,
+  create_deal, add_condition, update_condition, post_update. Dropdown values
+  are checked against `field_options` (case-insensitive, stored in the
+  board's spelling). create_deal reuses the "+ New Deal" rules, now in
+  `lib/data/boards.js` (`newDealGroup`, `checklistFor`); new data fns
+  `getItem`, `searchItems`, `moveItemToGroup`, `getSubitem`.
+- **Scope = read + everyday edits**, enforced twice: no delete/admin tools,
+  and restrictive `oauth_*` RLS policies (`schema.sql`, applied) that stop any
+  token with a `client_id` claim from deleting, writing anything but
+  items/subitems/updates-insert, or touching storage — even via the REST API.
+- **Sidebar → "AI assistants"** (`components/AiConnections.jsx`): connector
+  URL + connected apps (`listGrants`) with Disconnect (`revokeGrant`). A
+  revoked app's current access token still works until it expires (≤1h).
+- Sign-in now returns to where you were: middleware sends `/login?next=…`,
+  and login + `/auth/callback` follow it through `lib/auth/safeNext.js`.
+  (This also fixed an open redirect: the callback used to follow any `next`.)
+- Tests (gitignored): `scripts/_verify-mcp-rls.mjs` (20, SQL, rolled back),
+  `scripts/_verify-mcp.mjs` (20, needs dev server), `scripts/_ui-test-mcp.mjs` (5).
+- **To switch on** (Supabase dashboard → Authentication → OAuth Server):
+  enable the OAuth 2.1 server, Authorization Path `/oauth/consent`, allow
+  dynamic client registration. Site URL must stay the Vercel domain.
 
 ### Session 5 (2026-09-28) — reference styling + condition status progress
 - Sidebar styling in `components/board/board.css` now matches the standalone

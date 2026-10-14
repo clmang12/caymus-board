@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { subscribeToBoard } from '@/lib/data/realtime';
-import { getBoardTree, updateItem, createItem, duplicateItem, deleteItem, setItemPositions, addFieldOption, deleteFieldOption, getFieldOptions } from '@/lib/data/boards';
+import { getBoardTree, updateItem, createItem, duplicateItem, deleteItem, setItemPositions, addFieldOption, deleteFieldOption, getFieldOptions, newDealGroup, checklistFor } from '@/lib/data/boards';
 import { findItemTrashId, restoreFromTrash } from '@/lib/data/trash';
 import { addSubitem, insertSubitems, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
 import { listAttachments, uploadAttachment, deleteAttachment, getDownloadUrl } from '@/lib/data/attachments';
@@ -424,7 +424,7 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
   // matching Purch/Refi checklist. ----
   const addNewDeal = useCallback(async (dealLabel) => {
     const groups = treeRef.current.groups;
-    const group = groups.find((g) => !/template/i.test(g.title)) || groups[0];
+    const group = newDealGroup(groups);
     if (!group) return;
     try {
       const created = await createItem(sb, { boardId: board.id, groupId: group.id, name: 'New deal', deal: dealLabel });
@@ -444,8 +444,8 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
       setExpandedIds((s) => new Set(s).add(created.id));
       loadAttachments(created.id);
       loadUpdates(created.id);
-      if (/purch/i.test(dealLabel)) applyChecklist(created.id, 'Purch');
-      else if (/refi/i.test(dealLabel)) applyChecklist(created.id, 'Refi');
+      const checklist = checklistFor(dealLabel);
+      if (checklist) applyChecklist(created.id, checklist);
       pushUndo({ kind: 'create', itemId: created.id, name: created.name, label: `new ${dealLabel} deal` });
     } catch (e) { console.error('addNewDeal failed', e); }
   }, [sb, board.id, persist, applyChecklist, loadAttachments, loadUpdates, pushUndo]);

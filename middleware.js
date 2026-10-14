@@ -1,8 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
+import { safeNext } from '@/lib/auth/safeNext';
 
 export async function middleware(request) {
   const path = request.nextUrl.pathname;
+  // The MCP endpoint and OAuth discovery documents authenticate by bearer
+  // token (or not at all); no session cookie to refresh or check.
+  if (path.startsWith('/.well-known') || path === '/api/mcp') return NextResponse.next();
   const isApiRoute = path.startsWith('/api');
   const isAuthRoute = path.startsWith('/login') || path.startsWith('/auth');
 
@@ -58,11 +62,12 @@ export async function middleware(request) {
   if (!user && !isAuthRoute && !isApiRoute) {
     const to = request.nextUrl.clone();
     to.pathname = '/login';
+    // Come back here after signing in (the OAuth consent page needs its query).
+    to.search = path === '/' ? '' : '?next=' + encodeURIComponent(path + request.nextUrl.search);
     return NextResponse.redirect(to);
   }
   if (user && path === '/login') {
-    const to = request.nextUrl.clone();
-    to.pathname = '/';
+    const to = new URL(safeNext(request.nextUrl.searchParams.get('next')), request.url);
     return NextResponse.redirect(to);
   }
   return response;
