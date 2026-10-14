@@ -19,8 +19,9 @@ const CAN = [
   'Read every board: deals, conditions, updates and file names',
   'Edit deal fields and move deals between groups',
   'Add deals, add and update conditions, post updates as you',
+  'Delete deals, conditions and updates, after you approve each one in the assistant (they go to Trash)',
 ];
-const CANNOT = 'It can’t delete anything, download files, or change boards, groups, automations or dropdown lists.';
+const CANNOT = 'It can’t restore or empty the Trash, download files, or change boards, groups, automations or dropdown lists.';
 
 function hostOf(uri) {
   try { return new URL(uri).host; } catch { return uri; }

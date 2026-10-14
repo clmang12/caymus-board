@@ -39,7 +39,6 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
 ### Session 6 (2026-10-14) — MCP server for outside AI assistants
 Team members can add the board to Claude.ai / ChatGPT (or any MCP client)
 as a custom connector at `https://caymus-board.vercel.app/api/mcp`.
-**Inert until the OAuth server is switched on in Supabase** (see below).
 - **Why not Supabase's own MCP server:** it's a developer tool (account
   token, raw SQL on every table, no per-user identity). Ours runs as the
   signed-in user through `lib/data`, so RLS, automations and authorship apply.
@@ -52,26 +51,41 @@ as a custom connector at `https://caymus-board.vercel.app/api/mcp`.
 - **Tools** (`lib/mcp/tools.js`, endpoint `app/api/mcp/route.js`, via
   `mcp-handler` 2 + `@modelcontextprotocol/server` 2 + `zod` 4):
   list_boards, get_board, search_deals, get_deal, update_deal, move_deal,
-  create_deal, add_condition, update_condition, post_update. Dropdown values
+  create_deal, add_condition, update_condition, post_update, delete_deal,
+  delete_condition, delete_update. Dropdown values
   are checked against `field_options` (case-insensitive, stored in the
   board's spelling). create_deal reuses the "+ New Deal" rules, now in
   `lib/data/boards.js` (`newDealGroup`, `checklistFor`); new data fns
   `getItem`, `searchItems`, `moveItemToGroup`, `getSubitem`.
-- **Scope = read + everyday edits**, enforced twice: no delete/admin tools,
-  and restrictive `oauth_*` RLS policies (`schema.sql`, applied) that stop any
-  token with a `client_id` claim from deleting, writing anything but
-  items/subitems/updates-insert, or touching storage — even via the REST API.
+- **Scope = read + everyday edits + deletes**, enforced twice: no admin
+  tools, and restrictive `oauth_*` RLS policies (`schema.sql`, applied) that
+  limit any token with a `client_id` claim to writing items/subitems,
+  inserting/deleting updates and inserting item/condition/update trash rows.
+  No board/group/option/automation writes, no restoring/purging trash, no
+  storage — even via the REST API.
+- **Deletes (added same day; user chose "approve in the chat"):**
+  delete_deal / delete_condition / delete_update are `destructiveHint: true`
+  and tell the model to get explicit confirmation, so Claude.ai/ChatGPT ask
+  the user before each call. That approval is client-side only (a user can set
+  a tool to "always allow"; a raw token can delete via REST), so every MCP
+  delete goes to Trash: deals via `deleteItem`, conditions via
+  `trashSubitem`, updates via `trashUpdate` (new trash kinds `condition` /
+  `update`, restored by `restoreChild` in `lib/data/trash.js`). Trash rows
+  carry `payload.deleted_via = 'AI assistant'`, shown in the Trash view.
 - **Sidebar → "AI assistants"** (`components/AiConnections.jsx`): connector
   URL + connected apps (`listGrants`) with Disconnect (`revokeGrant`). A
   revoked app's current access token still works until it expires (≤1h).
 - Sign-in now returns to where you were: middleware sends `/login?next=…`,
   and login + `/auth/callback` follow it through `lib/auth/safeNext.js`.
   (This also fixed an open redirect: the callback used to follow any `next`.)
-- Tests (gitignored): `scripts/_verify-mcp-rls.mjs` (20, SQL, rolled back),
-  `scripts/_verify-mcp.mjs` (20, needs dev server), `scripts/_ui-test-mcp.mjs` (5).
-- **To switch on** (Supabase dashboard → Authentication → OAuth Server):
-  enable the OAuth 2.1 server, Authorization Path `/oauth/consent`, allow
-  dynamic client registration. Site URL must stay the Vercel domain.
+- Tests (gitignored): `scripts/_verify-mcp-rls.mjs` (25, SQL, rolled back),
+  `scripts/_verify-mcp.mjs` (28, needs dev server), `scripts/_ui-test-mcp.mjs` (5),
+  `scripts/_verify-oauth-flow.mjs` (full connector flow against prod).
+- Known stale UI tests (fail on the pre-session-6 code too, not investigated):
+  `_ui-test-newdeal.mjs` "row auto-expanded", `_ui-test-filter-trash.mjs`
+  "restored deal still has its update" (data-level `_verify-trash.mjs` passes).
+- Supabase OAuth server is ON (Authorization Path `/oauth/consent`, dynamic
+  client registration allowed). Site URL must stay the Vercel domain.
 
 ### Session 5 (2026-09-28) — reference styling + condition status progress
 - Sidebar styling in `components/board/board.css` now matches the standalone

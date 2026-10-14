@@ -274,8 +274,10 @@ create policy attachments_team on storage.objects
 -- Access tokens that Supabase's OAuth 2.1 server issues to AI assistants
 -- carry a client_id claim. These RESTRICTIVE policies narrow such a token to
 -- the MCP tools' scope (lib/mcp/tools.js) even if it's used against the REST
--- API directly: read anything; insert/update deals and conditions; post
--- updates. No deletes, no other writes, no file storage.
+-- API directly: read anything; insert/update/delete deals and conditions;
+-- post and delete updates; snapshot those three kinds into the trash (the
+-- tools always do before deleting). No other writes (so no restoring or
+-- purging trash), no file storage.
 create or replace function is_oauth_client() returns boolean
 language sql stable as $$ select coalesce(auth.jwt() ->> 'client_id', '') <> '' $$;
 
@@ -287,8 +289,11 @@ begin
                            'trash','profiles','notifications','user_prefs'] loop
     foreach op in array array['insert','update','delete'] loop
       execute format('drop policy if exists oauth_%s on %I', op, t);
-      continue when (t in ('items','subitems') and op <> 'delete') or (t = 'updates' and op = 'insert');
-      if op = 'insert' then
+      continue when t in ('items','subitems') or (t = 'updates' and op <> 'update');
+      if t = 'trash' and op = 'insert' then
+        execute 'create policy oauth_insert on trash as restrictive for insert to authenticated '
+             || 'with check (not is_oauth_client() or kind in (''item'',''condition'',''update''))';
+      elsif op = 'insert' then
         execute format('create policy oauth_insert on %I as restrictive for insert to authenticated with check (not is_oauth_client())', t);
       else
         execute format('create policy oauth_%s on %I as restrictive for %s to authenticated using (not is_oauth_client())', op, t, op);

@@ -5,6 +5,9 @@ import { listBoards } from '@/lib/data/boards';
 import { listTrash, restoreFromTrash, deleteFromTrash, emptyTrash } from '@/lib/data/trash';
 import { timeAgo } from './columns';
 
+const KIND_LABEL = { item: 'Deal', condition: 'Condition', update: 'Update' };
+const KIND_ICON = { board: '📋', item: '📄', condition: '☑️', update: '💬' };
+
 export default function TrashPanel({ sb, onClose }) {
   const router = useRouter();
   const [rows, setRows] = useState(null);
@@ -49,7 +52,8 @@ export default function TrashPanel({ sb, onClose }) {
 
   const meta = (r) => (r.kind === 'board'
     ? 'Board'
-    : `Deal · ${boardNames[r.board_id] || 'board deleted'}`) + ` · deleted ${timeAgo(r.deleted_at)}`;
+    : `${KIND_LABEL[r.kind] || 'Deal'} · ${boardNames[r.board_id] || 'board deleted'}`)
+    + ` · deleted ${timeAgo(r.deleted_at)}${r.via ? ` by ${r.via}` : ''}`;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -64,10 +68,10 @@ export default function TrashPanel({ sb, onClose }) {
         {error && <div className="trash-error">{error}</div>}
         <div className="modal-body">
           {rows === null && <div className="trash-empty">Loading…</div>}
-          {rows?.length === 0 && <div className="trash-empty">Trash is empty. Deleted deals and boards show up here.</div>}
+          {rows?.length === 0 && <div className="trash-empty">Trash is empty. Deleted deals and boards show up here, as do conditions and updates deleted by an AI assistant.</div>}
           {rows?.map((r) => (
             <div key={r.id} className="trash-row">
-              <span className="trash-icon">{r.kind === 'board' ? '📋' : '📄'}</span>
+              <span className="trash-icon">{KIND_ICON[r.kind] || '📄'}</span>
               <div className="trash-text">
                 <div className="trash-name">{r.name}</div>
                 <div className="trash-meta">{meta(r)}</div>
