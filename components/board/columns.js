@@ -25,7 +25,12 @@ export const COL_BY_KEY = Object.fromEntries(COLUMNS.map((c) => [c.key, c]));
 export const DEFAULT_ORDER = COLUMNS.map((c) => c.key);
 export const DEFAULT_WIDTHS = Object.fromEntries(COLUMNS.map((c) => [c.key, c.width]));
 
-export const EMPTY_COLOR = '#c4c4c4';
+// Option colours live in the database. The light neutral grey reads as a
+// bright block on the dark theme, so it's drawn with a theme token instead.
+export const EMPTY_COLOR = 'var(--label-neutral)';
+export function themeColor(color) {
+  return color && color.toLowerCase() === '#c4c4c4' ? EMPTY_COLOR : color;
+}
 export const MIN_COL_WIDTH = 72;
 
 // Resolve the ordered, width-applied column list from prefs.
@@ -49,7 +54,7 @@ export function labelColor(options, field, value) {
   if (!value) return EMPTY_COLOR;
   const list = options?.[field] || [];
   const hit = list.find(([l]) => l === value);
-  return (hit && hit[1]) || EMPTY_COLOR;
+  return themeColor(hit && hit[1]) || EMPTY_COLOR;
 }
 
 export function conditionProgress(item, options) {
@@ -71,7 +76,7 @@ export function conditionProgress(item, options) {
 }
 
 export function optionList(options, field) {
-  return (options?.[field] || []).map(([label, color]) => ({ label, color: color || null }));
+  return (options?.[field] || []).map(([label, color]) => ({ label, color: themeColor(color) || null }));
 }
 
 export function fmtCurrency(n) {
