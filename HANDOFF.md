@@ -87,6 +87,15 @@ as a custom connector at `https://caymus-board.vercel.app/api/mcp`.
 - Supabase OAuth server is ON (Authorization Path `/oauth/consent`, dynamic
   client registration allowed). Site URL must stay the Vercel domain.
 
+- **Live updates for outside changes** (connector, teammates, automations):
+  `lib/data/realtime.js` now also listens for unfiltered item DELETEs
+  (filtered channels never get DELETEs) and for `updates` changes; DELETE
+  payloads carry only the id and `new = {}`, so rows are picked by event type
+  (`rowOf`) and deletes matched by id. `BoardGrid` keeps a moved deal's
+  conditions, removes deleted conditions by id, and refetches an open deal's
+  Updates feed on insert. Test: `scripts/_ui-test-live.mjs` (12, dev server).
+  `_ui-test-updates.mjs` is stale (Updates moved into the drawer in session 5).
+
 ### Session 5 (2026-09-28) — reference styling + condition status progress
 - Sidebar styling in `components/board/board.css` now matches the standalone
   reference: cool gray panel (`#f7f8fc`), pale blue selected navigation row,

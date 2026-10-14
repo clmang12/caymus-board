@@ -140,28 +140,40 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
         else mergeOption(row.field, row.label, row.color);
         return;
       }
+      if (table === 'updates') {
+        if (event === 'DELETE') {
+          setUpdatesByItem((m) => {
+            const hit = Object.entries(m).find(([, v]) => v.list?.some((u) => u.id === row.id));
+            return hit ? { ...m, [hit[0]]: { ...hit[1], list: hit[1].list.filter((u) => u.id !== row.id) } } : m;
+          });
+        } else if (updatesLoaded.current.has(row.item_id)) {
+          // The payload has no author join; refetch that deal's feed.
+          listUpdates(sb, row.item_id)
+            .then((list) => setUpdatesByItem((m) => ({ ...m, [row.item_id]: { loading: false, list } })))
+            .catch((e) => console.error('listUpdates failed', e));
+        }
+        return;
+      }
       setTree((t) => {
         if (table === 'items') {
           if (event === 'DELETE') {
             return { ...t, groups: t.groups.map((g) => ({ ...g, items: g.items.filter((it) => it.id !== row.id) })) };
           }
-          let found = false;
+          // An item for another board (only DELETEs arrive unfiltered) is ignored.
+          let prev = null;
           const groups = t.groups.map((g) => ({
             ...g,
             items: g.items.flatMap((it) => {
               if (it.id !== row.id) return [it];
-              found = true;
+              prev = it;
               return g.id === row.group_id ? [{ ...it, ...row }] : [];
             }),
           }));
-          if (!found) {
-            const gi = groups.findIndex((g) => g.id === row.group_id);
-            if (gi >= 0) groups[gi] = { ...groups[gi], items: [...groups[gi].items, { ...row, subitems: [] }] };
-          } else {
-            const gi = groups.findIndex((g) => g.id === row.group_id);
-            if (gi >= 0 && !groups[gi].items.some((it) => it.id === row.id)) {
-              groups[gi] = { ...groups[gi], items: [...groups[gi].items, { ...row, subitems: [] }] };
-            }
+          // New here, or moved from another group: add it, keeping the
+          // conditions it already had (the row payload doesn't carry them).
+          const gi = groups.findIndex((g) => g.id === row.group_id);
+          if (gi >= 0 && !groups[gi].items.some((it) => it.id === row.id)) {
+            groups[gi] = { ...groups[gi], items: [...groups[gi].items, { ...prev, ...row, subitems: prev?.subitems || [] }] };
           }
           return { ...t, groups };
         }
@@ -171,10 +183,14 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
             groups: t.groups.map((g) => ({
               ...g,
               items: g.items.map((it) => {
+                // DELETE payloads carry only the id, so match on that.
+                if (event === 'DELETE') {
+                  return (it.subitems || []).some((s) => s.id === row.id)
+                    ? { ...it, subitems: it.subitems.filter((s) => s.id !== row.id) }
+                    : it;
+                }
                 if (it.id !== row.item_id) return it;
-                const subitems = event === 'DELETE'
-                  ? (it.subitems || []).filter((s) => s.id !== row.id)
-                  : (it.subitems || []).some((s) => s.id === row.id)
+                const subitems = (it.subitems || []).some((s) => s.id === row.id)
                     ? (it.subitems || []).map((s) => (s.id === row.id ? { ...s, ...row } : s))
                     : [...(it.subitems || []), row];
                 return { ...it, subitems: subitems.sort((a, b) => a.position - b.position) };
