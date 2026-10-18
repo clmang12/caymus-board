@@ -160,6 +160,27 @@
 .m-search input::-webkit-search-cancel-button { display: none; }
 .m-search input::placeholder { color: var(--tx3); }
 
+/* Agent filter: toolbar button + dropdown list (same look as the board switcher). */
+.m-agent-btn { max-width: 170px; }
+.m-agent-btn.on { color: var(--accent); border-color: var(--accent); background: rgba(0, 115, 234, .08); }
+.m-agent-btn-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-avatar.sm { width: 18px; height: 18px; font-size: 9px; }
+.m-avatar.all { background: var(--s3); color: var(--tx2); border: 1px solid var(--bd3); font-size: 8.5px; font-weight: 800; }
+.m-menu {
+  position: absolute; top: 100%; left: 0; z-index: 60; margin-top: 6px; min-width: 210px; padding: 6px;
+  display: flex; flex-direction: column; background: var(--s1); border: 1px solid var(--bd);
+  border-radius: 12px; box-shadow: var(--pop-shadow); animation: m-pop .14s ease-out; transform-origin: top left;
+}
+.m-menu-opt {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 10px 0 8px;
+  border-radius: 9px; font-size: 13.5px; font-weight: 700; text-align: left;
+}
+.m-menu-opt.on { background: var(--s3); }
+.m-menu-opt:active { background: var(--s2); }
+.m-menu-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-menu-opt .m-avatar { width: 26px; height: 26px; font-size: 11px; }
+.m-menu-opt .m-avatar.all { font-size: 8.5px; }
+
 /* ---------- board switcher ---------- */
 .m-boardmenu {
   position: absolute; z-index: 60; min-width: 262px; max-width: calc(100vw - 28px); padding: 6px;

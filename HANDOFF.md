@@ -76,6 +76,9 @@ realtime and RLS unchanged and deploys with the web app.
   sheet, swipe-to-status, drag reorder, pull to refresh (resyncs on return to
   the tab instead), Files/Activity tabs, read-vs-cleared notifications (the
   table only has `read_at`, so read = cleared, like the desktop bell).
+- **Agent filter** (2026-10-18): "All agents ▾" dropdown at the left of the
+  toolbar (a chip row was tried first and dropped), one agent at a time (exact match, like the desktop FilterMenu). Stats and group
+  counts/volumes follow it; saved per user per board as `prefs.mobileAgent`.
 - **Fixed localhost auto-login loop** (`app/api/dev-login`): Next 14 cached
   the route's Supabase fetches, so it reused a spent one-time token; errors were
   ignored and no cookie was set → endless redirect. Now `force-dynamic` +

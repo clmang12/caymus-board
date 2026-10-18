@@ -47,6 +47,10 @@ export default function MobileApp({ user, profile, boards: initialBoards, board,
 
   const [tab, setTab] = useState('board');
   const [query, setQuery] = useState('');
+  // Agent filter, remembered per user per board (an agent usually wants their
+  // own deals each time). A saved agent no longer on the board is ignored.
+  const [agent, setAgent] = useState(() => (
+    (initialOptions?.agent || []).some(([l]) => l === prefs?.mobileAgent) ? prefs.mobileAgent : null));
   const [expandedId, setExpandedId] = useState(null);
   const [flashId, setFlashId] = useState(null);
   const [collapsed, setCollapsed] = useState(() => prefs?.mobileCollapsed
@@ -106,6 +110,13 @@ export default function MobileApp({ user, profile, boards: initialBoards, board,
     return () => clearTimeout(t);
   }, [collapsed, sb, user.id, board.id]);
 
+  const pickAgent = useCallback((next) => {
+    setMenu(null);
+    setAgent(next);
+    setExpandedId(null);
+    patchPrefs(sb, user.id, board.id, { mobileAgent: next }).catch((e) => console.error('patchPrefs failed', e));
+  }, [sb, user.id, board.id]);
+
   const toggleGroup = useCallback((groupId) => setCollapsed((c) => ({ ...c, [groupId]: !c[groupId] })), []);
   const toggleAll = useCallback(() => {
     setCollapsed((c) => {
@@ -126,7 +137,7 @@ export default function MobileApp({ user, profile, boards: initialBoards, board,
   }, [flashId]);
 
   // ---- menus: one status/condition popup at a time, plus the board switcher ----
-  const [menu, setMenu] = useState(null); // { kind: 'status'|'cond', where: 'card'|'detail', itemId, subId?, up }
+  const [menu, setMenu] = useState(null); // { kind: 'status'|'cond'|'agent', where: 'card'|'detail'|'board', itemId?, subId?, up }
   const [boardMenu, setBoardMenu] = useState(null); // 'header' | 'tab'
   const [editBoardId, setEditBoardId] = useState(null);
   const openRef = useRef(false);
@@ -541,6 +552,9 @@ export default function MobileApp({ user, profile, boards: initialBoards, board,
               switcher={{ open: boardMenu, props: switcherProps }}
               collapsed={collapsed}
               query={query}
+              agent={agent}
+              agentMenu={menu?.kind === 'agent'}
+              onOpenAgentMenu={(el, count) => toggleMenu({ kind: 'agent', where: 'board' }, el, count, 84)}
               undoDepth={undoDepth}
               expandedId={expandedId}
               menu={menu}
@@ -550,6 +564,7 @@ export default function MobileApp({ user, profile, boards: initialBoards, board,
               onToggleGroup={toggleGroup}
               onToggleAll={toggleAll}
               onQuery={setQuery}
+              onAgent={pickAgent}
               onUndo={undo}
               onToggleExpand={toggleExpand}
               onOpenStatus={(itemId, el, count, where) => toggleMenu({ kind: 'status', where, itemId }, el, count, 84)}

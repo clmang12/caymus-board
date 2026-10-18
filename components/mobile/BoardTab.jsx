@@ -2,7 +2,7 @@
 import DealCard from './DealCard';
 import BoardSwitcher from './BoardSwitcher';
 import { SearchIcon, UndoIcon, CloseIcon } from './icons';
-import { millions, money, personInitials } from './format';
+import { agentColor, agentInitials, millions, money, optionsFor, personInitials } from './format';
 import { stop } from './OptionMenu';
 
 function boardStats(groups) {
@@ -19,15 +19,20 @@ function boardStats(groups) {
 }
 
 export default function BoardTab({
-  tree, boards, options, profile, switcher, collapsed, query, undoDepth,
+  tree, boards, options, profile, switcher, collapsed, query, agent, undoDepth,
   expandedId, menu, condSel, flashId,
-  onToggleBoardMenu, onToggleGroup, onToggleAll, onQuery, onUndo,
+  agentMenu, onOpenAgentMenu,
+  onToggleBoardMenu, onToggleGroup, onToggleAll, onQuery, onAgent, onUndo,
   onToggleExpand, onOpenStatus, onPickStatus, condHandlersFor, onOpenDeal,
 }) {
   const q = query.trim().toLowerCase();
-  const groups = tree.groups
+  // Agent filter: exact match, like the desktop filter menu. The stats follow
+  // it (that agent's pipeline); the search text only narrows the list.
+  const agentGroups = tree.groups.map((g) => (agent ? { ...g, items: g.items.filter((it) => it.agent === agent) } : g));
+  const groups = agentGroups
     .map((g) => ({ group: g, items: q ? g.items.filter((it) => (it.name || '').toLowerCase().includes(q)) : g.items }))
-    .filter(({ items }) => !q || items.length);
+    .filter(({ items }) => !(q || agent) || items.length);
+  const agents = optionsFor(options, 'agent');
   const anyOpen = tree.groups.some((g) => !collapsed[g.id]);
   const who = profile?.full_name || profile?.email || '';
 
@@ -55,7 +60,7 @@ export default function BoardTab({
         </div>
 
         <div className="m-stats">
-          {boardStats(tree.groups).map((s) => (
+          {boardStats(agentGroups).map((s) => (
             <div key={s.label} className="m-stat">
               <div className="m-stat-val">{s.value}</div>
               <div className="m-stat-label">{s.label}</div>
@@ -64,6 +69,45 @@ export default function BoardTab({
         </div>
 
         <div className="m-toolbar">
+          {agents.length > 0 && (
+            <div className="m-anchor">
+              <button
+                type="button"
+                className={'m-tool-btn m-agent-btn' + (agent ? ' on' : '')}
+                aria-haspopup="menu"
+                aria-expanded={!!agentMenu}
+                aria-label={`Agent filter: ${agent || 'all agents'}`}
+                onPointerDown={stop}
+                onClick={(e) => onOpenAgentMenu(e.currentTarget, agents.length + 1)}
+              >
+                {agent && (
+                  <span className="m-avatar sm" style={{ background: agentColor(options, agent) }} aria-hidden="true">{agentInitials(agent)}</span>
+                )}
+                <span className="m-agent-btn-label">{agent || 'All agents'}</span>
+                <span className={'m-head-chev' + (agentMenu ? ' up' : '')} aria-hidden="true">⌄</span>
+              </button>
+              {agentMenu && (
+                <div className="m-menu" role="menu" aria-label="Filter by agent" onPointerDown={stop} onClick={stop}>
+                  {[[null, null], ...agents].map(([name, color]) => (
+                    <button
+                      key={name || 'all'}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={agent === name}
+                      className={'m-menu-opt' + (agent === name ? ' on' : '')}
+                      onClick={() => onAgent(name)}
+                    >
+                      {name
+                        ? <span className="m-avatar" style={{ background: color || '#9699a6' }} aria-hidden="true">{agentInitials(name)}</span>
+                        : <span className="m-avatar all" aria-hidden="true">All</span>}
+                      <span className="m-menu-label">{name || 'All agents'}</span>
+                      {agent === name && <span className="m-board-check" aria-hidden="true">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {undoDepth > 0 && (
             <button type="button" className="m-tool-btn push" onClick={onUndo} title="Undo last change">
               <UndoIcon />Undo
@@ -89,16 +133,20 @@ export default function BoardTab({
             </button>
           )}
         </label>
+
       </header>
 
       <div className="m-scroll" id="m-board-scroll">
         <div className="m-board-list">
-          {q && !groups.length && (
-            <div className="m-empty"><div className="m-empty-icon">🔍</div>No deals match “{query.trim()}”.</div>
+          {(q || agent) && !groups.length && (
+            <div className="m-empty">
+              <div className="m-empty-icon">🔍</div>
+              {q ? `No ${agent ? agent + '’s ' : ''}deals match “${query.trim()}”.` : `No deals for ${agent} on this board.`}
+            </div>
           )}
           {groups.map(({ group, items }) => {
             const open = q ? true : !collapsed[group.id];
-            const vol = group.items.reduce((a, it) => a + (Number(it.volume) || 0), 0);
+            const vol = items.reduce((a, it) => a + (Number(it.volume) || 0), 0);
             return (
               <section key={group.id} className="m-group" aria-label={group.title}>
                 <button type="button" className="m-group-head" aria-expanded={open} onClick={() => onToggleGroup(group.id)}>
