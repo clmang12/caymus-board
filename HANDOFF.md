@@ -36,6 +36,54 @@ resuming in a new Claude Code / Claude for VS Code window. Companion docs:
 - Every prototype feature is now ported, including undo (per-user; see
   Session 4). Remaining items need the user: API key, SMTP.
 
+### Session 7 (2026-10-17) — mobile companion app at `/m` (branch `mobile-app`, uncommitted)
+Built from the Claude Design handoff `design_handoff_caymus_mobile/` (README +
+`Caymus Mobile.dc.html`, kept outside the repo). An installable PWA inside this
+Next app rather than Expo: it uses `lib/data/*`, the Supabase cookie session,
+realtime and RLS unchanged and deploys with the web app.
+- **Routes:** `app/m/page.js` → first board; `app/m/[boardId]/page.js` (server
+  load like `/board/[id]`, plus `?deal=<id>` deep link); `app/m/layout.js`
+  (viewport-fit, apple-web-app); `app/manifest.js` + `app/m/icon.svg`. The
+  middleware matcher now skips `manifest.webmanifest` (fetched without cookies).
+- **UI:** `components/mobile/` — `MobileApp.jsx` (state + every write),
+  `BoardTab` / `DealCard` / `ConditionList` / `OptionMenu` / `DealDetail` /
+  `NotificationsTab` / `MeTab` / `BoardSwitcher` / `TabBar`, pure tree helpers
+  in `tree.js`, display helpers in `format.js`, tokens in `mobile.css` (scoped
+  to `.mapp`, so they don't touch the desktop's `:root` tokens).
+- **Built:** Board tab in Cards layout (stats, search, collapse all), status
+  popup + 6-option condition popup (checked rows batch), status → group routing,
+  undo (≤25, inverse writes, skips anything changed since — same rule as the
+  desktop undo), deal detail (Details editable / Conditions / Updates),
+  notifications (✕ + Undo toast, Clear all + Undo, tap opens the deal, across
+  boards), board switcher (header + Board tab, inline rename), Me (dark mode,
+  open full board, sign out). Web mobile topbar links to it ("Mobile app").
+- **Routing stays in Postgres.** The `items_automations` trigger decides the
+  group; the app reads it from the `updateItem` response, then puts the deal at
+  the top of that group (one extra `position` write), opens the group and
+  scrolls to it. NB the trigger's mapping differs from the design README:
+  Approved → Active Deals (README says Broker Complete), and In Progress doesn't
+  move (README says Active Deals). The app follows the trigger.
+- **Data layer additions:** `restoreNotifications`, `patchPrefs` (read-merge-
+  write so phone and desktop don't clobber each other's keys), `getProfile`.
+  Prefs keys used: `theme` (shared with desktop), `mobileCollapsed` (phone only).
+- **Gotchas found:** (1) the App Router mounts React on `document`, so a
+  `document` listener still sees pointerdowns a popup stopped — close-on-
+  outside-tap listens on `window`. (2) Switching back to a board within ~30s
+  renders the router's cached RSC payload; the app refetches the tree once
+  after subscribing to realtime (also covers changes made before the
+  subscription opened).
+- **Not built yet:** Groups + Table layouts, Search tab, + FAB / new-deal
+  sheet, swipe-to-status, drag reorder, pull to refresh (resyncs on return to
+  the tab instead), Files/Activity tabs, read-vs-cleared notifications (the
+  table only has `read_at`, so read = cleared, like the desktop bell).
+- **Fixed localhost auto-login loop** (`app/api/dev-login`): Next 14 cached
+  the route's Supabase fetches, so it reused a spent one-time token; errors were
+  ignored and no cookie was set → endless redirect. Now `force-dynamic` +
+  `force-no-store`, errors return 500, cookies set on the redirect response.
+- **Test:** `scripts/_ui-test-mobile.mjs` (67 checks, headless Chrome at
+  390×844, dev server on :3000; makes and deletes its own board by id).
+  `DEBUG_TAP=1` prints what each tap lands on.
+
 ### Session 6 (2026-10-14) — MCP server for outside AI assistants
 Team members can add the board to Claude.ai / ChatGPT (or any MCP client)
 as a custom connector at `https://caymus-board.vercel.app/api/mcp`.

@@ -15,6 +15,8 @@ export default function BoardShell({ user, boards, board, options, prefs }) {
         <div className="mobile-topbar">
           <button onClick={() => setSbOpen(true)} title="Boards">☰</button>
           <span className="mobile-topbar-title">{board.name}</span>
+          {/* Full page load: the mobile app manages its own theme. */}
+          <a className="mobile-topbar-app" href={'/m/' + board.id}>Mobile app</a>
         </div>
         <BoardGrid user={user} board={board} options={options} prefs={prefs} />
       </div>
