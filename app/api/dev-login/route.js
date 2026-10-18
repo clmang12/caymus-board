@@ -5,9 +5,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 
 const DEV_EMAIL = 'clmang@gmail.com';
+
+// Never cache: Next 14 caches fetches made in GET route handlers, and a cached
+// generateLink / verify response hands back a one-time token that's already
+// been used ("Email link is invalid", "Refresh Token Not Found").
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 export async function GET(request) {
   if (process.env.NODE_ENV === 'production' || process.env.DEV_AUTO_LOGIN !== '1') {
@@ -24,21 +29,24 @@ export async function GET(request) {
   const { data: link, error: linkErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email: DEV_EMAIL });
   if (linkErr) return new NextResponse(linkErr.message, { status: 500 });
 
-  const anon = createClient(url, anonKey, { auth: { persistSession: false } });
-  const { data: si, error } = await anon.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: 'magiclink' });
-  if (error) return new NextResponse(error.message, { status: 500 });
-
-  const store = cookies();
+  // Verify it with the cookie-writing client, so the session lands straight
+  // in `jar`. The cookies go on the redirect response itself: writing them
+  // through next/headers didn't reach a NextResponse.redirect, and errors were
+  // ignored, so a failure left the browser signed out and looping back here.
+  const jar = [];
   const sb = createServerClient(url, anonKey, {
     cookies: {
-      getAll: () => store.getAll(),
-      setAll: (list) => list.forEach(({ name, value, options }) => store.set(name, value, options)),
+      getAll: () => [],
+      setAll: (list) => jar.push(...list),
     },
   });
-  await sb.auth.setSession({ access_token: si.session.access_token, refresh_token: si.session.refresh_token });
+  const { error } = await sb.auth.verifyOtp({ token_hash: link.properties.hashed_token, type: 'magiclink' });
+  if (error) return new NextResponse(error.message, { status: 500 });
 
   // Same-origin only, so this can't be used as an open redirect ("//x", "/\x" resolve off-site).
   const next = new URL(request.nextUrl.searchParams.get('next') || '/', request.url);
   const dest = next.origin === request.nextUrl.origin ? next : new URL('/', request.url);
-  return NextResponse.redirect(dest);
+  const res = NextResponse.redirect(dest);
+  jar.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
+  return res;
 }
