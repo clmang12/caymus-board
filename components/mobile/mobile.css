@@ -220,7 +220,7 @@
 .m-group-head { width: 100%; display: flex; align-items: center; gap: 9px; padding: 4px 4px; min-height: 40px; }
 .m-group-chev { font-size: 13px; color: var(--tx2); display: inline-block; transition: transform .18s; }
 .m-group-chev.shut { transform: rotate(-90deg); }
-.m-group-title { color: var(--group-color); font-size: 15px; font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-group-title { color: var(--group-color); font-size: 15px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m-group-vol { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--tx2); white-space: nowrap; }
 
 .m-card {
