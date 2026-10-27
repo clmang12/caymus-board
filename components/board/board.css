@@ -171,14 +171,29 @@
   100% { opacity: 0; transform: translate3d(var(--drift), 48px, 0) rotate(560deg); }
 }
 
+/* Group colour as drawn, from the raw --group-color set inline on the group.
+   Light mode shows it as is; dark mode mutes it (text toward grey, bars and
+   borders toward the surface) so bright labels don't glare on the dark board. */
+.grp, .card-group, .msheet {
+  --gc-text: var(--group-color);
+  --gc-bar: var(--group-color);
+  --gc-line: color-mix(in srgb, var(--group-color) 60%, transparent);
+}
+:root.dark :is(.grp, .card-group, .msheet) {
+  --gc-text: color-mix(in srgb, var(--group-color) 55%, var(--tx2));
+  --gc-bar: color-mix(in srgb, var(--group-color) 50%, var(--s1));
+  --gc-line: color-mix(in srgb, var(--group-color) 30%, var(--bd));
+}
+
 /* group */
 .grp { width: max-content; min-width: 100%; margin-top: 22px; }
+.grp-toggle, .grp-title { color: var(--gc-text); }
 .grp-head {
   display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
 }
 .grp-head-collapsed {
   box-sizing: border-box; width: 100%; padding: 8px 10px; margin-bottom: 0;
-  border: 1px solid var(--group-color); border-left-width: 3px; border-radius: 8px;
+  border: 1px solid var(--gc-bar); border-left-width: 3px; border-radius: 8px;
   background: var(--s1);
 }
 .grp-toggle { background: none; border: none; cursor: pointer; padding: 2px; display: flex; }
@@ -188,7 +203,7 @@
 
 /* No overflow:hidden here — it would trap position:sticky for the name column
    inside a non-scrolling box. Corners are rounded on the first/last children. */
-.grid-box { border: 1px solid var(--bd2); border-radius: 8px; background: var(--s1); }
+.grid-box { border: 1px solid var(--gc-line, var(--bd2)); border-radius: 8px; background: var(--s1); }
 .grid-box > *:first-child { border-radius: 7px 7px 0 0; }
 .grid-box > *:last-child { border-radius: 0 0 7px 7px; }
 .grid-box > *:last-child .icell,
@@ -218,7 +233,7 @@
   display: flex; align-items: center; font-size: 13px;
 }
 /* Per-row group color bar, split by the row dividers (reference: 6px on the name cell). */
-.icell.sticky { background: var(--s1); border-left: 6px solid var(--group-color); }
+.icell.sticky { background: var(--s1); border-left: 6px solid var(--gc-bar); }
 .irow:hover .icell.sticky { background: var(--hov); }
 .icell.center { justify-content: center; }
 .icell.right { justify-content: flex-end; }
@@ -278,7 +293,7 @@
 .irow-wrap { position: relative; }
 .irow-wrap.row-expanded::before {
   content: ''; position: absolute; left: 16px; top: 38px; bottom: 0; width: 2px;
-  background: var(--group-color); z-index: 1; pointer-events: none;
+  background: var(--gc-bar); z-index: 1; pointer-events: none;
 }
 .irow-wrap.row-expanded::after {
   display: none;
@@ -291,7 +306,7 @@
 
 /* add-deal row */
 .add-row { display: flex; align-items: stretch; background: var(--s1); border-top: 1px solid var(--bd); overflow: hidden; }
-.add-row-bar { flex: 0 0 6px; }
+.add-row-bar { flex: 0 0 6px; background: var(--gc-line); }
 /* the deal row above already draws the divider */
 .irow-wrap + .add-row { border-top: none; }
 .add-row input {
@@ -321,7 +336,7 @@
 .subs-row { position: relative; border-bottom: 1px solid var(--bd2); font-size: 13px; background: var(--s1); }
 .subs-row::before {
   content: ''; position: absolute; left: -30px; top: 0; width: 30px; height: 50%;
-  border-left: 2px solid var(--group-color); border-bottom: 2px solid var(--group-color);
+  border-left: 2px solid var(--gc-bar); border-bottom: 2px solid var(--gc-bar);
   border-radius: 0 0 0 12px; pointer-events: none;
 }
 .subs-row:last-child { border-bottom: none; }
@@ -533,7 +548,7 @@
 .cards-wrap { display: flex; flex-direction: column; gap: 4px; padding-bottom: 40px; }
 .card-group-head {
   display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: none;
-  cursor: pointer; padding: 10px 4px; font-size: 14px; font-weight: 700; text-align: left;
+  cursor: pointer; padding: 10px 4px; font-size: 14px; font-weight: 700; text-align: left; color: var(--gc-text);
 }
 .card-chevron { display: inline-block; transition: transform .15s; font-size: 11px; }
 .card-chevron.open { transform: rotate(90deg); }
@@ -542,7 +557,7 @@
 .card-list { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; }
 .deal-card {
   display: flex; flex-direction: column; gap: 6px; text-align: left; width: 100%;
-  background: var(--s1); border: 1px solid var(--bd2); border-left: 4px solid var(--bd3);
+  background: var(--s1); border: 1px solid var(--bd2); border-left: 4px solid var(--gc-bar, var(--bd3));
   border-radius: 8px; padding: 12px 14px; cursor: pointer; font: inherit; color: var(--tx);
 }
 .deal-card:active { background: var(--hov); }
@@ -561,6 +576,7 @@
 .msheet {
   background: var(--s1); width: 100%; max-width: 480px; margin: 0 auto; border-radius: 14px;
   box-shadow: var(--shadow-pop); max-height: 88vh; display: flex; flex-direction: column; overflow: hidden;
+  border-top: 4px solid var(--gc-bar);
 }
 .msheet-head { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid var(--bd2); }
 .msheet-name { flex: 1; min-width: 0; font-size: 17px; font-weight: 700; border: none; outline: none; background: transparent; color: var(--tx); font-family: inherit; }

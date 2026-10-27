@@ -30,7 +30,7 @@ export default function ItemDetailSheet({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="msheet" onClick={(e) => e.stopPropagation()} style={{ borderTop: `4px solid ${groupColor}` }}>
+      <div className="msheet" onClick={(e) => e.stopPropagation()} style={{ '--group-color': groupColor }}>
         <div className="msheet-head">
           <SyncedInput
             className="msheet-name"

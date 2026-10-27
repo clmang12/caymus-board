@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import ItemRow from './ItemRow';
-import { gridTemplate, fmtCurrency, MIN_COL_WIDTH, softColor } from './columns';
+import { gridTemplate, fmtCurrency, MIN_COL_WIDTH } from './columns';
 
-const Chevron = ({ open, color }) => (
-  <svg width="12" height="12" viewBox="0 0 12 12" style={{ transform: `rotate(${open ? 90 : 0}deg)`, transition: 'transform .15s', color }}>
+const Chevron = ({ open }) => (
+  <svg width="12" height="12" viewBox="0 0 12 12" style={{ transform: `rotate(${open ? 90 : 0}deg)`, transition: 'transform .15s' }}>
     <path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
@@ -58,22 +58,18 @@ export default function GroupSection({
   };
 
   return (
-    <section className="grp">
-      <div
-        className={'grp-head' + (collapsed ? ' grp-head-collapsed' : '')}
-        style={collapsed ? { '--group-color': group.color } : undefined}
-      >
-        <button className="grp-toggle" onClick={() => onToggleCollapsed(group.id)} style={{ color: group.color }}>
-          <Chevron open={open} color={group.color} />
+    <section className="grp" style={{ '--group-color': group.color }}>
+      <div className={'grp-head' + (collapsed ? ' grp-head-collapsed' : '')}>
+        <button className="grp-toggle" onClick={() => onToggleCollapsed(group.id)}>
+          <Chevron open={open} />
         </button>
-        <span className="grp-title" style={{ color: group.color }}>{group.title}</span>
+        <span className="grp-title">{group.title}</span>
         <span className="grp-count">{items.length === 1 ? '1 item' : `${items.length} items`}</span>
       </div>
 
       {open && (
         <div
           className={'grid-box' + (dragItemId && rowOver === '__end__' ? ' row-drop-here' : '')}
-          style={{ borderColor: softColor(group.color) }}
           onDragOver={(e) => { if (dragItemId) { e.preventDefault(); setRowOver('__end__'); } }}
           onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setRowOver(null); }}
           onDrop={(e) => {
@@ -163,7 +159,7 @@ export default function GroupSection({
 
           {/* add deal */}
           <div className="add-row">
-            <span className="add-row-bar" style={{ background: softColor(group.color) }} />
+            <span className="add-row-bar" />
             <input
               placeholder="+ Add deal"
               onKeyDown={(e) => {

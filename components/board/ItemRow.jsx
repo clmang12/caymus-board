@@ -87,7 +87,7 @@ export default function ItemRow({
   return (
     <div
       className={'irow-wrap' + (dropBefore ? ' drop-before' : '') + (expanded ? ' row-expanded' : '') + (selected ? ' selected' : '')}
-      style={{ opacity: dragging ? 0.4 : 1, '--group-color': groupColor }}
+      style={{ opacity: dragging ? 0.4 : 1 }}
       onDragOver={(e) => { if (onDragOverRow) { e.preventDefault(); e.stopPropagation(); onDragOverRow(); } }}
       onDrop={(e) => { if (onDropRow) { e.preventDefault(); e.stopPropagation(); onDropRow(); } }}
     >

@@ -28,7 +28,7 @@ function SubRow({ sub, options, groupColor, onCommit, onDelete, onNotify, isSele
 
   const cells = {
     check: (
-      <div className="sub-check" style={{ borderLeft: `5px solid ${groupColor}` }}>
+      <div className="sub-check" style={{ borderLeft: '5px solid var(--gc-bar)' }}>
         <input
           type="checkbox"
           checked={isSelected}
@@ -245,7 +245,7 @@ export default function SubitemPanel({
               onDragEnd={() => setDragColumn(null)}
               style={{
                 textAlign: key === 'status' ? 'center' : undefined,
-                borderLeft: key === 'check' ? `5px solid ${groupColor}` : undefined,
+                borderLeft: key === 'check' ? '5px solid var(--gc-bar)' : undefined,
                 borderRight: index === columnOrder.length - 1 ? 'none' : undefined,
               }}
             >

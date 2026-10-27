@@ -45,7 +45,7 @@
 @keyframes m-sheetup { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes m-spin { to { transform: rotate(360deg); } }
 @keyframes m-slidein { from { transform: translateX(100%); } to { transform: translateX(0); } }
-@keyframes m-flash { 0%, 60% { box-shadow: 0 0 0 2px var(--accent), inset 4px 0 0 var(--edge); } 100% { box-shadow: inset 4px 0 0 var(--edge); } }
+@keyframes m-flash { 0%, 60% { box-shadow: 0 0 0 2px var(--accent), inset 4px 0 0 var(--edge-shown); } 100% { box-shadow: inset 4px 0 0 var(--edge-shown); } }
 @keyframes m-progress { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 
 /* ---------- shared bits ---------- */
@@ -220,14 +220,19 @@
 .m-group-head { width: 100%; display: flex; align-items: center; gap: 9px; padding: 4px 4px; min-height: 40px; }
 .m-group-chev { font-size: 13px; color: var(--tx2); display: inline-block; transition: transform .18s; }
 .m-group-chev.shut { transform: rotate(-90deg); }
-.m-group-title { font-size: 15px; font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-group-title { color: var(--group-color); font-size: 15px; font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .m-group-vol { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--tx2); white-space: nowrap; }
 
 .m-card {
   position: relative; margin: 0 0 9px; padding: 12px 13px 12px 17px;
   background: var(--s1); border: 1px solid var(--bd2); border-radius: 12px;
-  box-shadow: inset 4px 0 0 var(--edge); cursor: pointer;
+  box-shadow: inset 4px 0 0 var(--edge-shown); cursor: pointer;
 }
+/* Group colours as drawn: dark mode mutes them (title toward grey, card edge
+   toward the surface) so bright labels don't glare. */
+.m-card { --edge-shown: var(--edge); }
+.mapp.dark .m-card { --edge-shown: color-mix(in srgb, var(--edge) 50%, var(--s1)); }
+.mapp.dark .m-group-title { color: color-mix(in srgb, var(--group-color) 55%, var(--tx2)); }
 /* A card with an open popup sits above the cards after it, so nothing clips it. */
 .m-card.raised { z-index: 5; }
 .m-card.flash { animation: m-flash 1.6s ease-out; }

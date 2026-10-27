@@ -7,8 +7,8 @@ export default function BoardCards({ visibleGroups, options, collapsed, onToggle
       {visibleGroups.map(({ group, items }) => {
         const open = !collapsed[group.id];
         return (
-          <section key={group.id} className="card-group">
-            <button className="card-group-head" onClick={() => onToggleCollapsed(group.id)} style={{ color: group.color }}>
+          <section key={group.id} className="card-group" style={{ '--group-color': group.color }}>
+            <button className="card-group-head" onClick={() => onToggleCollapsed(group.id)}>
               <span className={'card-chevron' + (open ? ' open' : '')}>▸</span>
               <span className="card-group-title">{group.title}</span>
               <span className="card-group-count">{items.length}</span>
@@ -18,7 +18,7 @@ export default function BoardCards({ visibleGroups, options, collapsed, onToggle
                 {items.map((it) => {
                   const statusColor = labelColor(options, 'status', it.status);
                   return (
-                    <button key={it.id} className="deal-card" style={{ borderLeftColor: group.color }} onClick={() => onOpenDetail(it.id)}>
+                    <button key={it.id} className="deal-card" onClick={() => onOpenDetail(it.id)}>
                       <div className="deal-card-top">
                         <span className="deal-card-name">{it.name}</span>
                         {it.status && <span className="pill" style={{ background: statusColor }}>{it.status}</span>}

@@ -202,7 +202,7 @@ export default function BoardTab({
               <section key={group.id} className="m-group" aria-label={group.title}>
                 <button type="button" className="m-group-head" aria-expanded={open} onClick={() => onToggleGroup(group.id)}>
                   <span className={'m-group-chev' + (open ? '' : ' shut')} aria-hidden="true">▾</span>
-                  <span className="m-group-title" style={{ color: group.color }}>{group.title}</span>
+                  <span className="m-group-title" style={{ '--group-color': group.color }}>{group.title}</span>
                   <span className="m-count">{items.length}</span>
                   {vol > 0 && <span className="m-group-vol">{money(vol)}</span>}
                 </button>
