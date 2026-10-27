@@ -32,6 +32,13 @@ export const OpenIcon = () => (
   </svg>
 );
 
+// Sort: arrow down beside arrow up.
+export const SortIcon = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" strokeWidth="2" {...base} aria-hidden="true">
+    <path d="m3 16 4 4 4-4" /><path d="M7 20V4" /><path d="m21 8-4-4-4 4" /><path d="M17 4v16" />
+  </svg>
+);
+
 export const SearchIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
     <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.7" />

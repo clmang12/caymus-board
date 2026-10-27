@@ -184,11 +184,15 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
               return g.id === row.group_id ? [{ ...it, ...row }] : [];
             }),
           }));
-          // New here, or moved from another group: add it, keeping the
+          // New here, or moved from another group: add it where its position
+          // puts it (a status automation puts it first), keeping the
           // conditions it already had (the row payload doesn't carry them).
           const gi = groups.findIndex((g) => g.id === row.group_id);
           if (gi >= 0 && !groups[gi].items.some((it) => it.id === row.id)) {
-            groups[gi] = { ...groups[gi], items: [...groups[gi].items, { ...prev, ...row, subitems: prev?.subitems || [] }] };
+            const items = groups[gi].items;
+            const at = items.findIndex((it) => it.position > row.position);
+            const moved = { ...prev, ...row, subitems: prev?.subitems || [] };
+            groups[gi] = { ...groups[gi], items: at < 0 ? [...items, moved] : [...items.slice(0, at), moved, ...items.slice(at)] };
           }
           return { ...t, groups };
         }

@@ -341,8 +341,9 @@ $$;
 create or replace function items_automations() returns trigger
 language plpgsql as $$
 declare
-  target_group uuid;
-  lender_txt   text;
+  target_group   uuid;
+  lender_txt     text;
+  incoming_group uuid := new.group_id; -- the group this write asked for
 begin
   lender_txt := coalesce(array_to_string(new.lender, ', '), '');
 
@@ -393,6 +394,12 @@ begin
     elsif new.appraisal = 'Completed' and automation_enabled(new.board_id, 'updateApprDone') then
       insert into updates (item_id, body) values (new.id, 'Appraisal for ' || new.name || ' has been completed.');
     end if;
+  end if;
+
+  -- A deal this trigger moved goes to the top of its new group. A write that
+  -- set group_id itself (a drag, an undo, move_deal) keeps its own position.
+  if new.group_id is distinct from old.group_id and incoming_group is not distinct from old.group_id then
+    new.position := coalesce((select min(position) from items where group_id = new.group_id), 1) - 1;
   end if;
 
   return new;

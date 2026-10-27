@@ -11,7 +11,7 @@ import { patchPrefs } from '@/lib/data/prefs';
 import { findItem, patchItem, patchSubitems, placeItem, mergeChange } from './tree';
 import { shortName, money, shortDate } from './format';
 import { opensUp } from './OptionMenu';
-import BoardTab from './BoardTab';
+import BoardTab, { SORTS } from './BoardTab';
 import BoardSwitcher from './BoardSwitcher';
 import DealDetail from './DealDetail';
 import NotificationsTab from './NotificationsTab';
@@ -110,6 +110,14 @@ export default function MobileApp({ user, profile, boards: initialBoards, board,
     return () => clearTimeout(t);
   }, [collapsed, sb, user.id, board.id]);
 
+  // Sort within each group, remembered per user per board like the agent filter.
+  const [sort, setSort] = useState(() => (SORTS.some(([k]) => k === prefs?.mobileSort) ? prefs.mobileSort : 'position'));
+  const pickSort = useCallback((next) => {
+    setMenu(null);
+    setSort(next);
+    patchPrefs(sb, user.id, board.id, { mobileSort: next }).catch((e) => console.error('patchPrefs failed', e));
+  }, [sb, user.id, board.id]);
+
   const pickAgent = useCallback((next) => {
     setMenu(null);
     setAgent(next);
@@ -137,7 +145,7 @@ export default function MobileApp({ user, profile, boards: initialBoards, board,
   }, [flashId]);
 
   // ---- menus: one status/condition popup at a time, plus the board switcher ----
-  const [menu, setMenu] = useState(null); // { kind: 'status'|'cond'|'agent', where: 'card'|'detail'|'board', itemId?, subId?, up }
+  const [menu, setMenu] = useState(null); // { kind: 'status'|'cond'|'agent'|'sort', where: 'card'|'detail'|'board', itemId?, subId?, up }
   const [boardMenu, setBoardMenu] = useState(null); // 'header' | 'tab'
   const [editBoardId, setEditBoardId] = useState(null);
   const openRef = useRef(false);
@@ -554,6 +562,10 @@ export default function MobileApp({ user, profile, boards: initialBoards, board,
               query={query}
               agent={agent}
               agentMenu={menu?.kind === 'agent'}
+              sort={sort}
+              sortMenu={menu?.kind === 'sort'}
+              onOpenSortMenu={(el, count) => toggleMenu({ kind: 'sort', where: 'board' }, el, count, 84)}
+              onSort={pickSort}
               onOpenAgentMenu={(el, count) => toggleMenu({ kind: 'agent', where: 'board' }, el, count, 84)}
               undoDepth={undoDepth}
               expandedId={expandedId}

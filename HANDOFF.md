@@ -79,6 +79,17 @@ realtime and RLS unchanged and deploys with the web app.
 - **Agent filter** (2026-10-18): "All agents ▾" dropdown at the left of the
   toolbar (a chip row was tried first and dropped), one agent at a time (exact match, like the desktop FilterMenu). Stats and group
   counts/volumes follow it; saved per user per board as `prefs.mobileAgent`.
+- **Sort** (2026-10-18): button beside the search box → Board order /
+  Closing date (soonest, undated last) / Name (A–Z), within each group;
+  saved as `prefs.mobileSort`.
+- **Moved deals land on top** (2026-10-18): `items_automations` now sets
+  `position = min(group) - 1` when the trigger itself changes the group (a
+  write that sets `group_id` keeps its position; a routing status still
+  overrides a group set in the same write, as before). Desktop realtime now
+  slots arriving deals by position instead of appending. **Apply to the live
+  DB with `node scripts/_apply-items-trigger.mjs`** (only that function), then
+  `node scripts/_verify-move-top.mjs` (4 checks). Until then the phone writes
+  the top position itself, so it already behaves this way.
 - **Fixed localhost auto-login loop** (`app/api/dev-login`): Next 14 cached
   the route's Supabase fetches, so it reused a spent one-time token; errors were
   ignored and no cookie was set → endless redirect. Now `force-dynamic` +
