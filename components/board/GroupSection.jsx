@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ItemRow from './ItemRow';
 import { gridTemplate, fmtCurrency, MIN_COL_WIDTH, softColor } from './columns';
 
@@ -11,7 +11,8 @@ const Chevron = ({ open, color }) => (
 
 export default function GroupSection({
   group, cols, options, collapsed, onToggleCollapsed,
-  onCommitItem, onResizeColumn, onResizeEnd, onReorderColumns,
+  onCommitItem, selectedItemIds, onToggleSelectItem, onSetGroupSelected,
+  onResizeColumn, onResizeEnd, onReorderColumns,
   sort, onSort, expandedIds, onToggleExpand, onAddItem,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
   attachmentsByItem, onUploadAttachment, onDeleteAttachment, onDownloadAttachment,
@@ -29,6 +30,13 @@ export default function GroupSection({
   const open = !collapsed;
   const items = group.items || [];
   const volSum = items.reduce((a, it) => a + (Number(it.volume) || 0), 0);
+  const itemIds = items.map((it) => it.id);
+  const allSelected = items.length > 0 && items.every((it) => selectedItemIds.has(it.id));
+  const someSelected = items.some((it) => selectedItemIds.has(it.id));
+  const selectAllRef = useRef(null);
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someSelected && !allSelected;
+  }, [someSelected, allSelected, open]);
 
   const startResize = (key, e) => {
     e.preventDefault();
@@ -92,6 +100,18 @@ export default function GroupSection({
                   onClick={() => onSort(col.key)}
                   title="Click to sort, drag to reorder"
                 >
+                  {col.key === 'name' && (
+                    <input
+                      ref={selectAllRef}
+                      type="checkbox"
+                      className="row-check"
+                      checked={allSelected}
+                      disabled={items.length === 0}
+                      aria-label={`Select all deals in ${group.title}`}
+                      onChange={() => onSetGroupSelected(itemIds, !allSelected)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
                   {col.label}
                   {active && <span style={{ color: 'var(--blue)', fontSize: 9, marginLeft: 4 }}>{sort.dir === 1 ? '▲' : '▼'}</span>}
                   <span className="hcell-resize" title="Drag to resize"
@@ -110,6 +130,8 @@ export default function GroupSection({
               options={options}
               groupColor={group.color}
               onCommit={(patch) => onCommitItem(it.id, patch)}
+              selected={selectedItemIds.has(it.id)}
+              onToggleSelect={(range) => onToggleSelectItem(it.id, range, itemIds)}
               expanded={expandedIds.has(it.id)}
               onToggleExpand={() => onToggleExpand(it.id)}
               onCommitSubitem={(subId, patch) => onCommitSubitem(it.id, subId, patch)}

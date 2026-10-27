@@ -104,6 +104,21 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
   const treeRef = useRef(tree);
   useEffect(() => { treeRef.current = tree; }, [tree]);
 
+  // Checked deals (any group). Editing a checked row applies to all of them,
+  // same as the conditions checklist.
+  const [selectedItemIds, setSelectedItemIds] = useState(() => new Set());
+  const selectedRef = useRef(selectedItemIds);
+  useEffect(() => { selectedRef.current = selectedItemIds; }, [selectedItemIds]);
+  const lastSelectedItemId = useRef(null);
+  // Drop checks for deals that are gone (deleted here or by someone else).
+  useEffect(() => {
+    setSelectedItemIds((s) => {
+      if (!s.size) return s;
+      const live = new Set(tree.groups.flatMap((g) => (g.items || []).map((it) => it.id)));
+      return [...s].every((id) => live.has(id)) ? s : new Set([...s].filter((id) => live.has(id)));
+    });
+  }, [tree]);
+
   const [dragItemId, setDragItemId] = useState(null);
   const [celebrateApprovalItemId, setCelebrateApprovalItemId] = useState(null);
   const celebrationTimer = useRef(null);
@@ -476,6 +491,94 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
   }, []);
   const undoBusy = useRef(false);
 
+  // ---- deal selection + batch edits ----
+  // `orderedIds` is the group's visible order, for shift-click ranges.
+  const toggleSelectItem = useCallback((itemId, range, orderedIds) => {
+    const anchorId = lastSelectedItemId.current;
+    lastSelectedItemId.current = itemId;
+    setSelectedItemIds((current) => {
+      const next = new Set(current);
+      const clickedIndex = orderedIds.indexOf(itemId);
+      const anchorIndex = anchorId ? orderedIds.indexOf(anchorId) : -1;
+      if (range && clickedIndex >= 0 && anchorIndex >= 0) {
+        const start = Math.min(clickedIndex, anchorIndex);
+        const end = Math.max(clickedIndex, anchorIndex);
+        orderedIds.slice(start, end + 1).forEach((id) => next.add(id));
+      } else if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  }, []);
+
+  const setGroupSelected = useCallback((ids, on) => {
+    lastSelectedItemId.current = null;
+    setSelectedItemIds((current) => {
+      const next = new Set(current);
+      ids.forEach((id) => (on ? next.add(id) : next.delete(id)));
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    lastSelectedItemId.current = null;
+    setSelectedItemIds(new Set());
+  }, []);
+
+  // The deals an action on `itemId` applies to: every checked deal if this
+  // one is checked, otherwise just this one.
+  const targetsFor = useCallback((itemId) => {
+    const s = selectedRef.current;
+    return s.has(itemId) ? [...s].filter((id) => findItem(id)) : [itemId];
+  }, []);
+
+  const commitItems = useCallback((itemId, patch) => {
+    // Renames stay single — giving several deals the same name is never the intent.
+    const ids = 'name' in patch ? [itemId] : targetsFor(itemId);
+    if (ids.length <= 1) return commitItem(itemId, patch);
+    const f0 = findItem(itemId);
+    if (patch.status === 'Approved' && f0 && f0.item.status !== 'Approved') {
+      setCelebrateApprovalItemId(itemId);
+      clearTimeout(celebrationTimer.current);
+      celebrationTimer.current = setTimeout(() => setCelebrateApprovalItemId(null), 1800);
+    }
+    const entries = ids.map((id) => {
+      const { group, item } = findItem(id);
+      return { itemId: id, groupId: group.id, name: item.name, before: Object.fromEntries(Object.keys(patch).map((k) => [k, item[k] ?? null])) };
+    });
+    const fields = Object.keys(patch).map((k) => COL_BY_KEY[k]?.label || k).join(', ');
+    pushUndo({ kind: 'items', entries, after: patch, label: `${fields} on ${ids.length} deals` });
+    ids.forEach((id) => applyItemPatch(id, patch));
+  }, [targetsFor, commitItem, applyItemPatch, pushUndo]);
+
+  const duplicateItems = useCallback((itemId) => {
+    targetsFor(itemId).forEach((id) => duplicateItemFor(id));
+  }, [targetsFor, duplicateItemFor]);
+
+  // Confirms itself; returns nothing. The detail sheet keeps the single-deal removeItem.
+  const deleteItems = useCallback((itemId) => {
+    const ids = targetsFor(itemId);
+    if (ids.length <= 1) {
+      const name = findItem(itemId)?.item.name || 'deal';
+      if (!confirm(`Delete "${name}"? It moves to trash and can be restored.`)) return;
+      removeItem(itemId);
+      note(`Deleted "${name}". Press Undo to restore it.`);
+      return;
+    }
+    if (!confirm(`Delete ${ids.length} selected deals? They move to trash and can be restored.`)) return;
+    const entries = ids.map((id) => {
+      const name = findItem(id)?.item.name || 'deal';
+      const done = removeItemRaw(id);
+      done.catch((e) => console.error('deleteItem failed', e));
+      return { itemId: id, name, done };
+    });
+    pushUndo({ kind: 'deletes', entries, label: `delete ${ids.length} deals` });
+    clearSelection();
+    note(`Deleted ${ids.length} deals. Press Undo to restore them.`);
+  }, [targetsFor, removeItem, removeItemRaw, pushUndo, clearSelection, note]);
+
   // How many deals on this board use `label` in column `key` (array or single value).
   const countUses = useCallback((key, label) => treeRef.current.groups.reduce((n, g) => n + g.items
     .filter((it) => (Array.isArray(it[key]) ? it[key].includes(label) : it[key] === label)).length, 0), []);
@@ -497,6 +600,28 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
         // A status/broker/compliance automation may have moved the deal; move it back too.
         if (f.group.id !== e.groupId && treeRef.current.groups.some((g) => g.id === e.groupId)) patch.group_id = e.groupId;
         applyItemPatch(e.itemId, patch);
+      } else if (e.kind === 'items') {
+        let skipped = 0;
+        for (const x of e.entries) {
+          const fx = findItem(x.itemId);
+          if (!fx || Object.keys(e.after).some((k) => !same(fx.item[k], e.after[k]))) { skipped++; continue; }
+          const patch = { ...x.before };
+          if (fx.group.id !== x.groupId && treeRef.current.groups.some((g) => g.id === x.groupId)) patch.group_id = x.groupId;
+          applyItemPatch(x.itemId, patch);
+        }
+        if (skipped === e.entries.length) return note(`Skipped: those deals were changed again since`);
+        if (skipped) return note(`Undid ${e.label} (${skipped} skipped: changed again since)`);
+      } else if (e.kind === 'deletes') {
+        await Promise.all(e.entries.map((x) => x.done));
+        let missing = 0;
+        for (const x of e.entries) {
+          const trashId = await findItemTrashId(sb, x.itemId);
+          if (trashId) await restoreFromTrash(sb, trashId);
+          else missing++;
+        }
+        setTree(await getBoardTree(sb, board.id));
+        if (missing === e.entries.length) return note(`Can't undo: those deals aren't in the trash anymore`);
+        if (missing) return note(`Undid ${e.label} (${missing} no longer in the trash)`);
       } else if (e.kind === 'sub') {
         const sub = f?.item.subitems?.find((s) => s.id === e.subitemId);
         if (!sub) return note(`Can't undo: condition "${e.name}" no longer exists`);
@@ -734,6 +859,12 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
           </div>
           <NewDealMenu options={options} onCreate={addNewDeal} />
           <FilterMenu options={options} filter={filter} onChange={setFilter} />
+          {selectedItemIds.size > 0 && (
+            <span className="board-selection" role="status">
+              {selectedItemIds.size} selected
+              <button title="Clear selection" aria-label="Clear selection" onClick={clearSelection}>✕</button>
+            </span>
+          )}
           <button className="board-btn" onClick={undo} disabled={!undoTop}
             title={undoTop ? `Undo ${undoTop} (⌘Z / Ctrl+Z)` : 'Nothing to undo'}>↶ Undo</button>
           <button className="board-btn" onClick={collapseAll}>{allCollapsed ? 'Expand all' : 'Collapse all'}</button>
@@ -769,7 +900,10 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
               options={options}
               collapsed={!!prefsState.collapsed[group.id]}
               onToggleCollapsed={toggleCollapsed}
-              onCommitItem={commitItem}
+              onCommitItem={commitItems}
+              selectedItemIds={selectedItemIds}
+              onToggleSelectItem={toggleSelectItem}
+              onSetGroupSelected={setGroupSelected}
               onResizeColumn={resizeColumn}
               onResizeEnd={resizeEnd}
               onReorderColumns={reorderColumns}
@@ -789,8 +923,8 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
               updatesByItem={updatesByItem}
               onPostUpdate={postUpdateFor}
               onOpenUpdates={openUpdates}
-              onDuplicateItem={duplicateItemFor}
-              onDeleteItem={removeItem}
+              onDuplicateItem={duplicateItems}
+              onDeleteItem={deleteItems}
               onNotify={note}
               celebrateApproval={celebrateApprovalItemId}
               dragItemId={dragItemId}

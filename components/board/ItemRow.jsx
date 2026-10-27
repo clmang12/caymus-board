@@ -49,7 +49,7 @@ const ChatIcon = () => (
 );
 
 export default function ItemRow({
-  item, cols, options, groupColor, onCommit, expanded, onToggleExpand,
+  item, cols, options, groupColor, onCommit, selected, onToggleSelect, expanded, onToggleExpand,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
   attachments, onUploadAttachment, onDeleteAttachment, onDownloadAttachment,
   updates, onPostUpdate, onOpenUpdates,
@@ -81,16 +81,12 @@ export default function ItemRow({
     if (updatesClosing && e.target === e.currentTarget) { setUpdatesOpen(false); setUpdatesClosing(false); }
   };
 
-  const onDelete = () => {
-    if (confirm(`Delete "${item.name}"? It moves to trash and can be restored.`)) {
-      onDeleteItem(item.id);
-      onNotify?.(`Deleted "${item.name}". Press Undo to restore it.`);
-    }
-  };
+  // BoardGrid confirms and covers every checked deal when this one is checked.
+  const onDelete = () => onDeleteItem(item.id);
 
   return (
     <div
-      className={'irow-wrap' + (dropBefore ? ' drop-before' : '') + (expanded ? ' row-expanded' : '')}
+      className={'irow-wrap' + (dropBefore ? ' drop-before' : '') + (expanded ? ' row-expanded' : '') + (selected ? ' selected' : '')}
       style={{ opacity: dragging ? 0.4 : 1, '--group-color': groupColor }}
       onDragOver={(e) => { if (onDragOverRow) { e.preventDefault(); e.stopPropagation(); onDragOverRow(); } }}
       onDrop={(e) => { if (onDropRow) { e.preventDefault(); e.stopPropagation(); onDropRow(); } }}
@@ -123,6 +119,16 @@ export default function ItemRow({
             return (
               <div key="name" className="icell sticky">
                 <div className="name-cell" style={{ width: '100%' }}>
+                  <input
+                    type="checkbox"
+                    className="row-check"
+                    checked={!!selected}
+                    readOnly
+                    aria-label={`Select ${item.name}`}
+                    onMouseDown={(e) => { e.preventDefault(); onToggleSelect(e.shiftKey); }}
+                    onKeyDown={(e) => { if (e.key === ' ') { e.preventDefault(); onToggleSelect(e.shiftKey); } }}
+                    onClick={(e) => e.preventDefault()}
+                  />
                   <span
                     className="row-drag"
                     title="Drag to move deal"
