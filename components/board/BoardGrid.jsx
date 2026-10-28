@@ -6,7 +6,7 @@ import { getBoardTree, updateItem, createItem, duplicateItem, deleteItem, setIte
 import { findItemTrashId, restoreFromTrash } from '@/lib/data/trash';
 import { addSubitem, insertSubitems, updateSubitem, deleteSubitem, applyTemplate } from '@/lib/data/subitems';
 import { listAttachments, uploadAttachment, deleteAttachment, getDownloadUrl } from '@/lib/data/attachments';
-import { listUpdates, postUpdate, deleteUpdate } from '@/lib/data/updates';
+import { listUpdates, postUpdate, editUpdate, trashUpdate, deleteUpdate } from '@/lib/data/updates';
 import { listAutomations, setAutomation } from '@/lib/data/automations';
 import { listNotifications, dismissNotification, dismissAll } from '@/lib/data/notifications';
 import { savePrefs } from '@/lib/data/prefs';
@@ -454,6 +454,10 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
     } catch (e) { console.error('postUpdate failed', e); }
   }, [sb, user.id, pushUndo]);
 
+  const patchUpdates = useCallback((itemId, fn) => {
+    setUpdatesByItem((m) => ({ ...m, [itemId]: { loading: false, list: fn(m[itemId]?.list || []) } }));
+  }, []);
+
   // ---- "+ New Deal" quick-create: picks a deal type, drops the item in the
   // first non-"Template" group (as the prototype did), and auto-applies the
   // matching Purch/Refi checklist. ----
@@ -493,6 +497,32 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
     clearTimeout(noteTimer.current);
     noteTimer.current = setTimeout(() => setUndoNote(''), 4000);
   }, []);
+
+  const editUpdateFor = useCallback(async (itemId, update, body) => {
+    patchUpdates(itemId, (list) => list.map((u) => (u.id === update.id ? { ...u, body } : u)));
+    try {
+      const saved = await editUpdate(sb, update.id, body);
+      patchUpdates(itemId, (list) => list.map((u) => (u.id === saved.id ? saved : u)));
+      pushUndo({ kind: 'update-edit', itemId, updateId: update.id, before: update.body, after: body, label: 'edit update' });
+    } catch (e) {
+      console.error('editUpdate failed', e);
+      patchUpdates(itemId, (list) => list.map((u) => (u.id === update.id ? update : u)));
+      note("Couldn't save the update");
+    }
+  }, [sb, patchUpdates, pushUndo, note]);
+
+  const trashUpdateFor = useCallback(async (itemId, update) => {
+    patchUpdates(itemId, (list) => list.filter((u) => u.id !== update.id));
+    try {
+      const trashId = await trashUpdate(sb, update.id);
+      if (trashId) pushUndo({ kind: 'update-delete', itemId, trashId, label: 'delete update' });
+    } catch (e) {
+      console.error('trashUpdate failed', e);
+      patchUpdates(itemId, (list) => [...list, update].sort((a, b) => b.created_at.localeCompare(a.created_at)));
+      note("Couldn't delete the update");
+    }
+  }, [sb, patchUpdates, pushUndo, note]);
+
   const undoBusy = useRef(false);
 
   // ---- deal selection + batch edits ----
@@ -649,6 +679,17 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
           ...m,
           [e.itemId]: { loading: false, list: (m[e.itemId]?.list || []).filter((update) => update.id !== e.update.id) },
         }));
+      } else if (e.kind === 'update-edit') {
+        const { data: current } = await sb.from('updates').select('body').eq('id', e.updateId).maybeSingle();
+        if (!current) return note("Can't undo: that update no longer exists");
+        if (current.body !== e.after) return note('Skipped: that update was edited again since');
+        const saved = await editUpdate(sb, e.updateId, e.before);
+        patchUpdates(e.itemId, (list) => list.map((u) => (u.id === saved.id ? saved : u)));
+      } else if (e.kind === 'update-delete') {
+        await restoreFromTrash(sb, e.trashId);
+        patchUpdates(e.itemId, () => []);
+        updatesLoaded.current.delete(e.itemId);
+        loadUpdates(e.itemId);
       } else if (e.kind === 'attachment-create') {
         await deleteAttachment(sb, e.attachment.id, e.attachment.storage_path);
         setAttachmentsByItem((m) => ({
@@ -678,7 +719,7 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
     } finally {
       undoBusy.current = false;
     }
-  }, [sb, board.id, note, applyItemPatch, applySubPatch, moveRowRaw, removeItemRaw]);
+  }, [sb, board.id, note, applyItemPatch, applySubPatch, moveRowRaw, removeItemRaw, patchUpdates, loadUpdates]);
 
   // Cmd/Ctrl+Z outside text fields; inside one, leave the browser's text undo alone.
   useEffect(() => {
@@ -926,6 +967,8 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
               onDownloadAttachment={downloadAttachment}
               updatesByItem={updatesByItem}
               onPostUpdate={postUpdateFor}
+              onEditUpdate={editUpdateFor}
+              onDeleteUpdate={trashUpdateFor}
               onOpenUpdates={openUpdates}
               onDuplicateItem={duplicateItems}
               onDeleteItem={deleteItems}
@@ -958,6 +1001,8 @@ export default function BoardGrid({ user, board, options: initialOptions, prefs 
           onDownloadAttachment={downloadAttachment}
           updates={updatesByItem[detailItem.id]}
           onPostUpdate={(body) => postUpdateFor(detailItem.id, body)}
+          onEditUpdate={(update, body) => editUpdateFor(detailItem.id, update, body)}
+          onDeleteUpdate={(update) => trashUpdateFor(detailItem.id, update)}
           onDuplicateItem={duplicateItemFor}
           onDeleteItem={removeItem}
         />

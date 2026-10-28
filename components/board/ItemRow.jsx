@@ -7,6 +7,7 @@ import UpdatesPanel from './UpdatesPanel';
 import Popover from './Popover';
 import SyncedInput from './SyncedInput';
 import { conditionProgress, gridTemplate } from './columns';
+import { htmlToText } from '@/lib/richtext';
 
 function formatActivityDate(iso) {
   if (!iso) return '';
@@ -16,7 +17,7 @@ function formatActivityDate(iso) {
 function ActivityLog({ item, updates, attachments }) {
   const entries = [
     ...(item.created_at ? [{ id: 'created', label: 'Deal created', date: item.created_at }] : []),
-    ...((updates?.list || []).map((update) => ({ id: `update-${update.id}`, label: 'Update posted', detail: update.body, date: update.created_at }))),
+    ...((updates?.list || []).map((update) => ({ id: `update-${update.id}`, label: 'Update posted', detail: htmlToText(update.body), date: update.created_at }))),
     ...((attachments?.list || []).map((file) => ({ id: `file-${file.id}`, label: 'File uploaded', detail: file.filename, date: file.created_at }))),
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -52,7 +53,7 @@ export default function ItemRow({
   item, cols, options, groupColor, onCommit, selected, onToggleSelect, expanded, onToggleExpand,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
   attachments, onUploadAttachment, onDeleteAttachment, onDownloadAttachment,
-  updates, onPostUpdate, onOpenUpdates,
+  updates, onPostUpdate, onEditUpdate, onDeleteUpdate, onOpenUpdates,
   onDuplicateItem, onDeleteItem,
   onNotify,
   celebrateApproval,
@@ -223,7 +224,7 @@ export default function ItemRow({
               <button className={drawerTab === 'activity' ? 'active' : ''} role="tab" aria-selected={drawerTab === 'activity'} onClick={() => setDrawerTab('activity')}>Activity Log</button>
             </div>
             <div className="updates-drawer-body">
-              {drawerTab === 'updates' && <UpdatesPanel updates={updates} onPost={onPostUpdate} />}
+              {drawerTab === 'updates' && <UpdatesPanel updates={updates} onPost={onPostUpdate} onEdit={onEditUpdate} onDelete={onDeleteUpdate} />}
               {drawerTab === 'files' && (
                 <AttachmentsPanel
                   attachments={attachments}

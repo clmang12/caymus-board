@@ -13,7 +13,7 @@ export default function ItemDetailSheet({
   item, cols, options, groupColor, onClose, onCommit,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
   attachments, onUploadAttachment, onDeleteAttachment, onDownloadAttachment,
-  updates, onPostUpdate,
+  updates, onPostUpdate, onEditUpdate, onDeleteUpdate,
   onDuplicateItem, onDeleteItem,
 }) {
   const fieldCols = cols.filter((c) => c.key !== 'name');
@@ -89,7 +89,7 @@ export default function ItemDetailSheet({
             />
           </div>
           <div className="msheet-scroll-x">
-            <UpdatesPanel updates={updates} onPost={onPostUpdate} />
+            <UpdatesPanel updates={updates} onPost={onPostUpdate} onEdit={onEditUpdate} onDelete={onDeleteUpdate} />
           </div>
         </div>
       </div>

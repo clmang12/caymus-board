@@ -16,7 +16,7 @@ export default function GroupSection({
   sort, onSort, expandedIds, onToggleExpand, onAddItem,
   onCommitSubitem, onAddSubitem, onDeleteSubitem, onApplyChecklist,
   attachmentsByItem, onUploadAttachment, onDeleteAttachment, onDownloadAttachment,
-  updatesByItem, onPostUpdate, onOpenUpdates,
+  updatesByItem, onPostUpdate, onEditUpdate, onDeleteUpdate, onOpenUpdates,
   onDuplicateItem, onDeleteItem,
   onNotify,
   celebrateApproval,
@@ -140,6 +140,8 @@ export default function GroupSection({
               onDownloadAttachment={onDownloadAttachment}
               updates={updatesByItem[it.id]}
               onPostUpdate={(body) => onPostUpdate(it.id, body)}
+              onEditUpdate={(update, body) => onEditUpdate(it.id, update, body)}
+              onDeleteUpdate={(update) => onDeleteUpdate(it.id, update)}
               onOpenUpdates={onOpenUpdates}
               onDuplicateItem={onDuplicateItem}
               onDeleteItem={onDeleteItem}
