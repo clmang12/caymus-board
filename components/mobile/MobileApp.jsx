@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { subscribeToBoard } from '@/lib/data/realtime';
 import { getBoardTree, getFieldOptions, updateItem, renameBoard } from '@/lib/data/boards';
 import { updateSubitem } from '@/lib/data/subitems';
-import { listUpdates, postUpdate } from '@/lib/data/updates';
+import { listUpdates, postUpdate, editUpdate, trashUpdate } from '@/lib/data/updates';
+import { restoreFromTrash } from '@/lib/data/trash';
 import { listNotifications, dismissNotification, dismissAll, restoreNotifications } from '@/lib/data/notifications';
 import { patchPrefs } from '@/lib/data/prefs';
 import { findItem, patchItem, patchSubitems, placeItem, mergeChange } from './tree';
@@ -387,6 +388,47 @@ export default function MobileApp({ user, profile, boards: initialBoards, board,
     }
   }, [sb, user.id, showToast]);
 
+  const patchUpdates = useCallback((itemId, fn) => {
+    setUpdatesByItem((m) => ({ ...m, [itemId]: { loading: false, list: fn(m[itemId]?.list || []) } }));
+  }, []);
+
+  const saveUpdateEdit = useCallback(async (itemId, update, body) => {
+    patchUpdates(itemId, (list) => list.map((u) => (u.id === update.id ? { ...u, body } : u)));
+    try {
+      const saved = await editUpdate(sb, update.id, body);
+      patchUpdates(itemId, (list) => list.map((u) => (u.id === saved.id ? saved : u)));
+    } catch (e) {
+      console.error('editUpdate failed', e);
+      patchUpdates(itemId, (list) => list.map((u) => (u.id === update.id ? update : u)));
+      showToast({ text: 'Couldn’t save that update.' }, 4000);
+    }
+  }, [sb, patchUpdates, showToast]);
+
+  // Deletes go to the trash; the toast's Undo restores from there.
+  const deleteUpdateFor = useCallback(async (itemId, update) => {
+    patchUpdates(itemId, (list) => list.filter((u) => u.id !== update.id));
+    try {
+      const trashId = await trashUpdate(sb, update.id);
+      showToast({
+        text: 'Update deleted',
+        action: 'Undo',
+        onAction: () => {
+          if (!trashId) return;
+          restoreFromTrash(sb, trashId)
+            .then(() => loadUpdates(itemId, true))
+            .catch((e) => {
+              console.error('restoreFromTrash failed', e);
+              showToast({ text: 'Couldn’t restore that update.' }, 4000);
+            });
+        },
+      }, 5000);
+    } catch (e) {
+      console.error('trashUpdate failed', e);
+      loadUpdates(itemId, true);
+      showToast({ text: 'Couldn’t delete that update.' }, 4000);
+    }
+  }, [sb, patchUpdates, loadUpdates, showToast]);
+
   // Deep link from a notification on another board (/m/<board>?deal=<id>).
   useEffect(() => {
     if (!initialDealId) return;
@@ -635,6 +677,8 @@ export default function MobileApp({ user, profile, boards: initialBoards, board,
             onCommit={commitField}
             condHandlers={condHandlersFor(detailItem.id, 'detail')}
             onPostUpdate={sendUpdate}
+            onEditUpdate={saveUpdateEdit}
+            onDeleteUpdate={deleteUpdateFor}
           />
         )}
 

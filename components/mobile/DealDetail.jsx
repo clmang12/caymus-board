@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { COLUMNS, parseCurrency } from '@/components/board/columns';
 import OptionMenu, { StatusPill } from './OptionMenu';
 import ConditionList from './ConditionList';
+import UpdateBody from '@/components/board/UpdateBody';
+import RichEditor from '@/components/board/RichEditor';
+import { isRichText, sanitizeHtml, textToHtml } from '@/lib/richtext';
 import { BackIcon } from './icons';
 import {
   agentColor, agentInitials, condProgress, dealColor, money, optionColor, optionsFor,
@@ -153,26 +156,24 @@ function FieldPicker({ col, value, options, onPick, onClose }) {
   );
 }
 
-function Composer({ onSend }) {
-  const [draft, setDraft] = useState('');
-  const send = () => {
-    const body = draft.trim();
-    if (!body) return;
-    onSend(body);
-    setDraft('');
-  };
+function UpdateActions({ onEdit, onDelete, onClose }) {
   return (
-    <div className="m-composer">
-      <textarea
-        value={draft}
-        rows={2}
-        placeholder="Write an update…"
-        aria-label="Write an update"
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); }}
-      />
-      <div className="m-composer-row">
-        <button type="button" className="m-send" disabled={!draft.trim()} onClick={send}>Update</button>
+    <div className="m-sheet-wrap" role="dialog" aria-label="Update options">
+      <div className="m-scrim" onClick={onClose} />
+      <div className="m-sheet">
+        <div className="m-grabber" aria-hidden="true" />
+        <div className="m-sheet-head">
+          <div className="m-sheet-title">Update</div>
+          <button type="button" className="m-sheet-done" onClick={onClose}>Cancel</button>
+        </div>
+        <div className="m-sheet-list">
+          <button type="button" className="m-sheet-opt" onClick={() => { onClose(); onEdit(); }}>
+            <span className="m-sheet-opt-label">Edit update</span>
+          </button>
+          <button type="button" className="m-sheet-opt m-danger" onClick={() => { onClose(); onDelete(); }}>
+            <span className="m-sheet-opt-label">Delete update</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -180,10 +181,12 @@ function Composer({ onSend }) {
 
 export default function DealDetail({
   item, options, tab, open, statusMenu, condMenu, selected, updates,
-  onTab, onClose, onOpenStatus, onPickStatus, onCommit, condHandlers, onPostUpdate,
+  onTab, onClose, onOpenStatus, onPickStatus, onCommit, condHandlers, onPostUpdate, onEditUpdate, onDeleteUpdate,
 }) {
   const [editing, setEditing] = useState(null);
   const [picker, setPicker] = useState(null);
+  const [updateMenuId, setUpdateMenuId] = useState(null);
+  const [editingUpdateId, setEditingUpdateId] = useState(null);
   const { done, total, pct } = condProgress(item);
   const vol = money(item.volume);
   const statusOptions = optionsFor(options, 'status');
@@ -281,7 +284,9 @@ export default function DealDetail({
 
         {tab === 'updates' && (
           <>
-            <Composer onSend={(body) => onPostUpdate(item.id, body)} />
+            <div className="m-composer">
+              <RichEditor placeholder="Write an update…" inlineMenus onSubmit={(body) => onPostUpdate(item.id, body)} />
+            </div>
             {updates?.loading && !updates.list.length && <div className="m-empty"><span className="m-spinner" aria-label="Loading updates" /></div>}
             {updates && !updates.loading && !updates.list.length && (
               <div className="m-empty"><div className="m-empty-icon">💬</div>No updates yet.</div>
@@ -294,14 +299,42 @@ export default function DealDetail({
                     <span className="m-avatar lg" style={{ background: u.author ? '#66ccff' : '#9699a6' }} aria-hidden="true">{personInitials(author)}</span>
                     <span className="m-update-author">{author}</span>
                     <span className="m-update-time">{timeAgo(u.created_at)}</span>
+                    {editingUpdateId !== u.id && (
+                      <button type="button" className="m-update-more" aria-label="Update options" onClick={() => setUpdateMenuId(u.id)}>⋯</button>
+                    )}
                   </div>
-                  <div className="m-update-body">{u.body}</div>
+                  {editingUpdateId === u.id ? (
+                    <div className="m-composer m-update-edit">
+                      <RichEditor
+                        initialHtml={isRichText(u.body) ? sanitizeHtml(u.body) : textToHtml(u.body)}
+                        placeholder="Edit update"
+                        submitLabel="Save"
+                        inlineMenus
+                        autoFocus
+                        onCancel={() => setEditingUpdateId(null)}
+                        onSubmit={(body) => { if (body !== u.body) onEditUpdate(item.id, u, body); setEditingUpdateId(null); }}
+                      />
+                    </div>
+                  ) : (
+                    <UpdateBody body={u.body} className="m-update-body" />
+                  )}
                 </div>
               );
             })}
           </>
         )}
       </div>
+
+      {updateMenuId && (
+        <UpdateActions
+          onClose={() => setUpdateMenuId(null)}
+          onEdit={() => setEditingUpdateId(updateMenuId)}
+          onDelete={() => {
+            const u = (updates?.list || []).find((x) => x.id === updateMenuId);
+            if (u) onDeleteUpdate(item.id, u);
+          }}
+        />
+      )}
 
       {pickerCol && (
         <FieldPicker

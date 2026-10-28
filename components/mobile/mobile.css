@@ -349,22 +349,69 @@ textarea.m-field-input { text-align: left; resize: vertical; min-height: 72px; }
 
 .m-composer { background: var(--s1); border: 1px solid var(--bd3); border-radius: 12px; padding: 12px 13px; margin-bottom: 16px; }
 .m-composer:focus-within { border-color: var(--accent); }
-.m-composer textarea {
-  width: 100%; min-height: 38px; border: 0; outline: 0; resize: none; background: transparent;
-  font-size: 16px; line-height: 1.5; color: var(--tx); field-sizing: content; max-height: 40vh;
+.m-update-edit { margin: 10px 0 0; padding: 0; border: 0; border-radius: 0; background: none; }
+
+/* rich-text composer (components/board/RichEditor.jsx) */
+.m-composer .rte-input {
+  position: relative; min-height: 38px; max-height: 40vh; overflow-y: auto; outline: 0;
+  font-size: 16px; line-height: 1.5; color: var(--tx); word-break: break-word; cursor: text;
 }
-.m-composer textarea::placeholder { color: var(--tx3); }
-.m-composer-row { display: flex; align-items: center; margin-top: 8px; }
-.m-send {
-  margin-left: auto; min-height: 36px; padding: 8px 18px; border-radius: 7px;
-  background: var(--accent); color: #fff; font-size: 13.5px; font-weight: 700;
+.m-composer .rte-input.empty::before { content: attr(data-placeholder); color: var(--tx3); pointer-events: none; position: absolute; }
+.m-composer .updates-tools {
+  display: flex; align-items: center; gap: 0; margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--bd2);
+  flex-wrap: wrap; color: var(--tx2);
 }
-.m-send:disabled { opacity: .45; cursor: default; }
+.m-composer .rte-tool {
+  display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 30px; height: 34px; padding: 0 3px;
+  border-radius: 7px; color: var(--tx2); font-size: 14px; font-weight: 700;
+}
+.m-composer .rte-tool.on { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.m-composer .rte-italic i { font-family: Georgia, serif; }
+.m-composer .rte-caret { font-size: 11px; transform: translateY(-2px); }
+.m-composer .rte-color-a { border-bottom: 3px solid #e2445c; line-height: 1.1; padding: 0 1px; }
+.m-composer .updates-tool-divider { width: 1px; height: 20px; background: var(--bd2); margin: 0 2px; }
+.m-composer .rte-block { font-size: 13.5px; padding: 0 4px; }
+.m-composer .rte-actions { display: flex; gap: 8px; width: 100%; justify-content: flex-end; margin-top: 6px; }
+.m-composer .rte-submit, .m-composer .rte-cancel, .m-composer .rte-link-form button {
+  min-height: 36px; padding: 8px 16px; border-radius: 7px; font-size: 13.5px; font-weight: 700;
+  background: var(--accent); color: #fff;
+}
+.m-composer .rte-cancel { background: var(--s3); color: var(--tx); }
+.m-composer .rte-submit:disabled, .m-composer .rte-link-form button:disabled { opacity: .45; cursor: default; }
+/* toolbar menus open inline under the toolbar */
+.m-composer .rte-menu { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.m-composer .rte-menu .pop-opt {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 6px 12px;
+  border: 1px solid var(--bd3); border-radius: 18px; font-size: 13.5px; font-weight: 600; color: var(--tx); cursor: pointer;
+}
+.m-composer .rte-menu .pop-swatch { width: 14px; height: 14px; border-radius: 50%; }
+.m-composer .rte-menu .rte-swatch-default { background: var(--tx); }
+.m-composer .rte-menu .pop-check { color: var(--accent); }
+.m-composer .rte-block-h3 { font-weight: 800; }
+.m-composer .rte-block-blockquote { font-style: italic; }
+.m-composer .rte-link-form { display: flex; gap: 8px; width: 100%; }
+.m-composer .rte-link-form input {
+  flex: 1; min-width: 0; font-size: 16px; color: var(--tx); background: var(--s2);
+  border: 1px solid var(--bd3); border-radius: 7px; padding: 6px 10px; outline: none;
+}
+.m-composer .rte-link-form input:focus { border-color: var(--accent); }
+.m-update-more {
+  margin-left: auto; width: 34px; height: 30px; margin-right: -6px; border-radius: 7px;
+  color: var(--tx3); font-size: 18px; line-height: 1;
+}
+.m-update-more:active { background: var(--s3); }
+.m-sheet-opt.m-danger { color: #df2f4a; }
 .m-update { background: var(--s1); border: 1px solid var(--bd2); border-radius: 12px; padding: 14px 15px; margin-bottom: 10px; }
 .m-update-head { display: flex; align-items: center; gap: 10px; }
 .m-update-author { font-size: 13.5px; font-weight: 800; }
 .m-update-time { font-size: 12px; color: var(--tx3); }
 .m-update-body { margin-top: 9px; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.m-update-body.rich { white-space: normal; }
+:is(.m-update-body.rich, .m-composer .rte-input) :is(ul, ol) { margin: 2px 0; padding-left: 22px; }
+:is(.m-update-body.rich, .m-composer .rte-input) h3 { margin: 4px 0 2px; font-size: 15px; font-weight: 800; }
+:is(.m-update-body.rich, .m-composer .rte-input) blockquote { margin: 4px 0; padding-left: 10px; border-left: 3px solid var(--bd3); color: var(--tx2); }
+:is(.m-update-body.rich, .m-composer .rte-input) code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; padding: 1px 4px; border-radius: 4px; background: var(--s3); }
+:is(.m-update-body.rich, .m-composer .rte-input) a { color: var(--accent); text-decoration: underline; }
 
 /* ---------- bottom sheet (field picker) ---------- */
 .m-sheet-wrap { position: absolute; inset: 0; z-index: 90; }
