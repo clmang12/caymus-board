@@ -192,10 +192,12 @@
   display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
 }
 .grp-head-collapsed {
-  box-sizing: border-box; width: 100%; padding: 8px 10px; margin-bottom: 0;
+  box-sizing: border-box; width: 100%; min-height: 52px; padding: 12px 14px; margin-bottom: 0;
   border: 1px solid var(--gc-bar); border-left-width: 3px; border-radius: 8px;
   background: var(--s1);
 }
+.grp-head-collapsed .grp-title { font-size: 17px; }
+.grp-head-collapsed .grp-count { font-size: 13.5px; }
 .grp-toggle { background: none; border: none; cursor: pointer; padding: 2px; display: flex; }
 .grp-toggle svg { transition: transform .15s; }
 .grp-title { font-size: 15px; font-weight: 500; }
